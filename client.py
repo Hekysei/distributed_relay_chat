@@ -25,7 +25,7 @@ class APP:
             self.iter()
 
     def iter(self):
-        # int - специальные ключи, chr - символ
+        # int - специальные ключи, str - символ
         c: Union[int, str] = self.stdscr.get_wch()
 
         if isinstance(c, int):
@@ -33,15 +33,15 @@ class APP:
                 self.fresah_draw()
             elif c in (curses.KEY_BACKSPACE, 127):
                 self.backspace()
-            elif c == 27:
+        else:
+            if c == "\x1b":
                 # ESC
                 self.is_running = False
-        else:
-            if c in ("\n", "\r") or c == curses.KEY_ENTER:
+            elif c in ("\n", "\r") or c == curses.KEY_ENTER:
                 # Enter
                 self.enter()
             elif c in ("\x7f", "\b"):
-                # Иногда может прилетать такой запрос стереть символ
+                # Иногда может прилетать такой backspace
                 self.backspace()
             elif c.isprintable() or c.isalpha():
                 # Если символ можно напечатать или он есть в алфавите
