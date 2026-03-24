@@ -1,17 +1,28 @@
 #!/usr/bin/env python3
 import curses
-from typing import Union
+from typing import Union, Callable
+import threading
 
 
-class APP:
+class Client:
     def __init__(self):
-        self.is_running = False
         self.messages = ["welcome"]
-        self.input_buffer = ""
 
+        self.on_got_message : Callable[[], None] = (lambda: None)
+
+    def add_message(self, message: str):
+        self.messages.append(message)
+        self.on_got_message()
+
+class CLI_Adapter:
+    def __init__(self, client: Client):
+        self.client: Client = client
+
+        self.input_buffer = ""
         self.stdscr: curses.window
         self.msg_win: curses.window
         self.input_win: curses.window
+        self.is_running = False
 
     def run(self, stdscr: curses.window):
         self.stdscr = stdscr
@@ -64,13 +75,10 @@ class APP:
 
     def enter(self):
         if message := self.input_buffer.strip():
-            self.add_message(message)
+            self.client.add_message(message)
             self.input_buffer = ""
             self.update_input()
 
-    def add_message(self, message: str):
-        self.messages.append(message)
-        self.update_messages()
 
     def resize_windows(self):
         height, width = self.stdscr.getmaxyx()
@@ -86,10 +94,10 @@ class APP:
         self.msg_win.clear()
 
         height, width = self.msg_win.getmaxyx()
-        start_idx = max(0, len(self.messages) - height)
-        shift = max(0, height - len(self.messages))
+        start_idx = max(0, len(self.client.messages) - height)
+        shift = max(0, height - len(self.client.messages))
 
-        for i, msg in enumerate(self.messages[start_idx:]):
+        for i, msg in enumerate(self.client.messages[start_idx:]):
             self.msg_win.addstr(shift + i, 0, msg[: width - 1])
         self.msg_win.refresh()
 
@@ -100,5 +108,18 @@ class APP:
         self.input_win.refresh()
 
 
+class APP:
+    def __init__(self):
+        self.client = Client()
+        self.cli_adapter = CLI_Adapter(self.client)
+
+        self.client.on_got_message = self.cli_adapter.update_messages
+
+    def run(self):
+        self.process_gui = threading.Thread(target=curses.wrapper(self.cli_adapter.run))
+        self.process_gui.start()
+
+
 if __name__ == "__main__":
-    curses.wrapper(APP().run)
+    app = APP()
+    app.run()
