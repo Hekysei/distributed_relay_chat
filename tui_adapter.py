@@ -1,13 +1,15 @@
 import curses
 
+from threading import Thread
 from typing import Union
 
 from client import Client
 
 
 class TUI_Adapter:
-    def __init__(self, client: Client):
-        self.client: Client = client
+    def __init__(self):
+        self.client = Client()
+        self.client.on_got_message = self.update_messages
 
         self.input_buffer = ""
         self.stdscr: curses.window
@@ -20,6 +22,7 @@ class TUI_Adapter:
 
     def __run_in_wrapper(self, stdscr: curses.window):
         self.stdscr = stdscr
+        Thread(target=self.client.run).start()
         # curses.curs_set(1)
         # curses.use_default_colors()
 
@@ -30,8 +33,8 @@ class TUI_Adapter:
         try:
             while self.is_running:
                 self.iter()
-        except KeyboardInterrupt:
-            self.client.on_got_message = lambda : None
+        finally:
+            self.client.stop()
 
     def iter(self):
         # int - специальные ключи, str - символ
