@@ -60,7 +60,7 @@ class CLI_Adapter:
                 self.update_input()
 
     def fresah_draw(self):
-        self.stdscr.clear()
+        self.stdscr.erase()
         self.stdscr.border()
         self.stdscr.refresh()
 
