@@ -1,40 +1,33 @@
 import curses
 
-from threading import Thread
 from typing import Union
 
 from client import Client
 
+from time import sleep
+
 
 class TUI_Adapter:
-    def __init__(self):
-        self.client = Client()
-        self.client.on_got_message = self.update_messages
+    def __init__(self, stdscr: curses.window, client: Client):
+        self.stdscr = stdscr
+        self.client = client
 
         self.input_buffer = ""
-        self.stdscr: curses.window
         self.msg_win: curses.window
         self.input_win: curses.window
-        self.is_running = False
+
+        self.is_stoped = False
+        self.fresah_draw()
 
     def run(self):
-        curses.wrapper(self.__run_in_wrapper)
-
-    def __run_in_wrapper(self, stdscr: curses.window):
-        self.stdscr = stdscr
-        Thread(target=self.client.run).start()
         # curses.curs_set(1)
         # curses.use_default_colors()
 
-        self.fresah_draw()
-        self.client.on_got_message = self.update_messages
-
-        self.is_running = True
         try:
-            while self.is_running:
+            while not self.is_stoped:
                 self.iter()
-        finally:
-            self.client.stop()
+        except KeyboardInterrupt:
+            self.is_stoped = True
 
     def iter(self):
         # int - специальные ключи, str - символ
@@ -47,7 +40,7 @@ class TUI_Adapter:
         else:
             if c == "\x1b":
                 # ESC
-                self.is_running = False
+                self.is_stoped = True
             elif c in ("\n", "\r") or c == curses.KEY_ENTER:
                 # Enter
                 self.enter()
@@ -66,7 +59,6 @@ class TUI_Adapter:
 
         self.resize_windows()
         self.update_messages()
-        self.update_input()
 
     def backspace(self):
         if self.input_buffer:
@@ -75,9 +67,9 @@ class TUI_Adapter:
 
     def enter(self):
         if message := self.input_buffer.strip():
-            self.client.send_message(message)
             self.input_buffer = ""
             self.update_input()
+            self.client.send_message(message)
 
     def resize_windows(self):
         height, width = self.stdscr.getmaxyx()
@@ -90,18 +82,26 @@ class TUI_Adapter:
         self.input_win.scrollok(True)
 
     def update_messages(self):
-        self.msg_win.clear()
+        if not self.is_stoped:
 
-        height, width = self.msg_win.getmaxyx()
-        start_idx = max(0, len(self.client.messages) - height)
-        shift = max(0, height - len(self.client.messages))
+            self.msg_win.clear()
 
-        for i, msg in enumerate(self.client.messages[start_idx:]):
-            self.msg_win.addstr(shift + i, 0, msg[: width - 1])
-        self.msg_win.refresh()
+            height, width = self.msg_win.getmaxyx()
+            start_idx = max(0, len(self.client.messages) - height)
+            shift = max(0, height - len(self.client.messages))
+
+            for i, msg in enumerate(self.client.messages[start_idx:]):
+                self.msg_win.addstr(shift + i, 0, msg[: width - 2])
+                
+            self.msg_win.refresh()
+
+            self.update_input()
+
 
     def update_input(self):
-        self.input_win.clear()
-        _, width = self.input_win.getmaxyx()
-        self.input_win.addstr(0, 0, self.input_buffer[: width - 1])
-        self.input_win.refresh()
+        if not self.is_stoped:
+            self.input_win.clear()
+            _, width = self.input_win.getmaxyx()
+            self.input_win.addstr(0,0,">")
+            self.input_win.addstr(0, 1, self.input_buffer[: width - 2])
+            self.input_win.refresh()

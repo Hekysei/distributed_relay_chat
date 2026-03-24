@@ -8,7 +8,7 @@ class Client:
         self.net_client = NetClient()
         self.messages = ["welcome"]
 
-        self.on_got_message: Callable[[], None] = lambda: None
+        self.on_message_callback: Callable[[], None] = lambda: None
 
     def run(self):
         if self.net_client.connect():
@@ -22,7 +22,7 @@ class Client:
 
     def add_message(self, message: str):
         self.messages.append(message)
-        self.on_got_message()
+        self.on_message_callback()
 
     def send_message(self, message: str):
         self.add_message(message)
