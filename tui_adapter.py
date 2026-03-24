@@ -1,4 +1,5 @@
 import curses
+
 from typing import Union
 
 from client import Client
@@ -14,19 +15,23 @@ class TUI_Adapter:
         self.input_win: curses.window
         self.is_running = False
 
-    def run_in_wrapper(self, stdscr: curses.window):
+    def run(self):
+        curses.wrapper(self.__run_in_wrapper)
+
+    def __run_in_wrapper(self, stdscr: curses.window):
         self.stdscr = stdscr
         # curses.curs_set(1)
         # curses.use_default_colors()
 
         self.fresah_draw()
+        self.client.on_got_message = self.update_messages
 
         self.is_running = True
         try:
             while self.is_running:
                 self.iter()
         except KeyboardInterrupt:
-            pass
+            self.client.on_got_message = lambda : None
 
     def iter(self):
         # int - специальные ключи, str - символ
@@ -67,7 +72,7 @@ class TUI_Adapter:
 
     def enter(self):
         if message := self.input_buffer.strip():
-            self.client.add_message(message)
+            self.client.send_message(message)
             self.input_buffer = ""
             self.update_input()
 
