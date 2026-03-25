@@ -11,14 +11,17 @@ class TUI_Adapter:
         self.client = client
 
         self.input_buffer = ""
+        self.active_chat = "c/"
+
         self.msg_win: curses.window
-        self.input_win: curses.window
+        self.inp_win: curses.window
+        self.bar_win: curses.window
 
         self.is_stoped = False
         self.fresah_draw()
 
     def run(self):
-        # curses.curs_set(1)
+        curses.curs_set(0)
         # curses.use_default_colors()
 
         try:
@@ -30,6 +33,8 @@ class TUI_Adapter:
     def iter(self):
         # int - специальные ключи, str - символ
         c: Union[int, str] = self.stdscr.get_wch()
+        if c == "\t":
+            self.client.send_text("tab")
         if isinstance(c, int):
             if c == curses.KEY_RESIZE:
                 self.fresah_draw()
@@ -52,11 +57,12 @@ class TUI_Adapter:
 
     def fresah_draw(self):
         self.stdscr.erase()
-        self.stdscr.border()
         self.stdscr.refresh()
 
         self.resize_windows()
         self.update_messages()
+        self.update_input()
+        self.update_bar()
 
     def backspace(self):
         if self.input_buffer:
@@ -64,43 +70,68 @@ class TUI_Adapter:
             self.update_input()
 
     def enter(self):
-        if message := self.input_buffer.strip():
+        if text := self.input_buffer.strip():
             self.input_buffer = ""
             self.update_input()
-            self.client.send_message(message)
+            self.client.send_text(text)
+
+    def create_window(self, h, w, y, x) -> curses.window:
+        area = curses.newwin(h, w, y, x)
+        area.border()
+        area.refresh()
+        return curses.newwin(h - 2, w - 2, y + 1, x + 1)
 
     def resize_windows(self):
-        height, width = self.stdscr.getmaxyx()
-        msg_height = max(1, height - 2)
-        input_height = 1
 
-        self.msg_win = curses.newwin(msg_height, width, 0, 0)
-        self.input_win = curses.newwin(input_height, width, msg_height + 1, 0)
-        self.msg_win.scrollok(True)
-        self.input_win.scrollok(True)
+        height, width = self.stdscr.getmaxyx()
+
+        bar_width = 20
+        msg_width = width - bar_width
+
+        inp_height = 3
+        msg_height = height - inp_height
+
+        self.bar_win = self.create_window(height, bar_width, 0, 0)
+        self.msg_win = self.create_window(msg_height, msg_width, 0, bar_width)
+        self.inp_win = self.create_window(inp_height, msg_width, msg_height, bar_width)
+
+        self.stdscr.refresh()
+
+        self.msg_win.scrollok(False)
+        self.inp_win.scrollok(False)
 
     def update_messages(self):
         if not self.is_stoped:
-
-            self.msg_win.clear()
-
+            self.msg_win.erase()
             height, width = self.msg_win.getmaxyx()
-            start_idx = max(0, len(self.client.messages) - height)
-            shift = max(0, height - len(self.client.messages))
 
-            for i, msg in enumerate(self.client.messages[start_idx:]):
+            i = height - 1
+            for msg in reversed(self.client.messages):
                 row = f"{msg.author}: {msg.text}"
-                self.msg_win.addstr(shift + i, 0, row[: width - 2])
-                
+                self.msg_win.insstr(i, 0, row[:width])
+                i -= 1
+                if i == -1:
+                    break
+
             self.msg_win.refresh()
-
-            self.update_input()
-
 
     def update_input(self):
         if not self.is_stoped:
-            self.input_win.clear()
-            _, width = self.input_win.getmaxyx()
-            self.input_win.addstr(0,0,">")
-            self.input_win.addstr(0, 1, self.input_buffer[: width - 2])
-            self.input_win.refresh()
+            self.inp_win.erase()
+            _, width = self.inp_win.getmaxyx()
+
+            self.inp_win.insstr(0, 0, ">" + self.input_buffer[:width])
+            self.inp_win.refresh()
+
+
+    def update_bar(self):
+        if not self.is_stoped:
+            self.bar_win.clear()
+
+            for i, chat in enumerate(self.client.chats.keys()):
+                self.bar_win.insstr(i, 1, chat)
+                
+                if self.active_chat == chat:
+                    self.bar_win.addch(i,0,">")
+            
+            self.bar_win.refresh()

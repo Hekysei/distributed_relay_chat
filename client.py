@@ -9,6 +9,7 @@ class Client:
         self.name = "blank_name"
         self.net_client = NetClient()
         self.messages: list[Message] = []
+        self.chats: dict[str, list[Message] |str] = {"c/": [], "r/": []}
 
         self.on_message_callback: Callable[[], None] = lambda: None
 
@@ -33,7 +34,7 @@ class Client:
     def add_client_message(self, text: str):
         self.add_message(Message("local", self.name, text))
 
-    def send_message(self, text: str):
+    def send_text(self, text: str):
         self.add_client_message(text)
         if not self.net_client.send(self.messages[-1]):
             self.add_sys_message("No server")
