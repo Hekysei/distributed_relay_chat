@@ -4,8 +4,6 @@ from typing import Union
 
 from client import Client
 
-from time import sleep
-
 
 class TUI_Adapter:
     def __init__(self, stdscr: curses.window, client: Client):
