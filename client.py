@@ -1,31 +1,39 @@
-from typing import Callable, Dict, Any
+from typing import Callable
 
 from net_client import NetClient
+from message import Message
 
 
 class Client:
     def __init__(self):
+        self.name = "blank_name"
         self.net_client = NetClient()
-        self.messages = ["welcome"]
+        self.messages: list[Message] = []
 
         self.on_message_callback: Callable[[], None] = lambda: None
 
     def run(self):
+        self.add_sys_message("welcome")
         if self.net_client.connect():
-            for message in self.net_client.recv_loop():
-                message: Dict[str, Any]
-                self.add_message(str(message))
-        self.add_message("Сonnection lost")
+            for msg in self.net_client.recv_loop():
+                msg: Message
+                self.add_sys_message(f"{msg.author}: {msg.text}")
+        self.add_sys_message("Сonnection lost")
 
     def stop(self):
         self.net_client.ws.close()
 
-    def add_message(self, message: str):
-        self.messages.append(message)
+    def add_message(self, msg: Message):
+        self.messages.append(msg)
         self.on_message_callback()
 
-    def send_message(self, message: str):
-        self.add_message(message)
-        data = {"text": message}
-        if not self.net_client.send(data):
-            self.add_message("No server")
+    def add_sys_message(self, text: str):
+        self.add_message(Message("local", "sys", text))
+
+    def add_client_message(self, text: str):
+        self.add_message(Message("local", self.name, text))
+
+    def send_message(self, text: str):
+        self.add_client_message(text)
+        if not self.net_client.send(self.messages[-1]):
+            self.add_sys_message("No server")

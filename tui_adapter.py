@@ -89,7 +89,8 @@ class TUI_Adapter:
             shift = max(0, height - len(self.client.messages))
 
             for i, msg in enumerate(self.client.messages[start_idx:]):
-                self.msg_win.addstr(shift + i, 0, msg[: width - 2])
+                row = f"{msg.author}: {msg.text}"
+                self.msg_win.addstr(shift + i, 0, row[: width - 2])
                 
             self.msg_win.refresh()
 

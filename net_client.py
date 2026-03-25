@@ -1,6 +1,7 @@
-import json
 import websocket
-from typing import Generator, Any, Dict
+from typing import Generator
+
+from message import Message, json_to_message, message_to_json
 
 
 class NetClient:
@@ -15,23 +16,22 @@ class NetClient:
         except ConnectionRefusedError, OSError:
             return False
 
-    def recv_loop(self) -> Generator[Dict[str, Any], None, None]:
+    def recv_loop(self) -> Generator[Message]:
         while True:
             try:
-                message = self.ws.recv()
-                if not message:
+                data: str | bytes = self.ws.recv()
+                if not data:
                     print("Connection closed")
                     break
-                data: dict = json.loads(message)
-                yield data
+                yield json_to_message(data)
             except websocket.WebSocketConnectionClosedException:
                 break
             except Exception as e:
-                yield {"error": str(e)}
+                yield Message("system", "net_client", str(e))
                 break
 
-    def send(self, data: dict):
+    def send(self, msg: Message):
         if self.ws.connected:
-            self.ws.send(json.dumps(data))
+            self.ws.send(message_to_json(msg))
             return True
         return False

@@ -6,7 +6,7 @@ import json
 @dataclass
 class Message:
     room: str
-    autore: str
+    author: str
     text: str
     timestamp: datetime | None = None
 
@@ -15,7 +15,7 @@ class Message:
             self.timestamp = datetime.now()
 
 
-def json_to_message(json_str: str) -> Message:
+def json_to_message(json_str: str | bytes) -> Message:
     data = json.loads(json_str)
     data["timestamp"] = datetime.fromisoformat(data["timestamp"])
     return Message(**data)
