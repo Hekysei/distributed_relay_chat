@@ -6,14 +6,13 @@ from message import Message, json_to_message, message_to_json
 
 class NetClient:
     def __init__(self, chat_for_logs):
-        self.server_url = "ws://localhost:1409"
         self.ws: websocket.WebSocket = websocket.WebSocket()
 
         self.chat_for_logs = chat_for_logs
 
-    def connect(self) -> bool:
+    def connect(self, ip: str, port: str) -> bool:
         try:
-            self.ws.connect(self.server_url)
+            self.ws.connect(f"ws://{ip}:{port}")
             return True
         except ConnectionRefusedError, OSError:
             return False

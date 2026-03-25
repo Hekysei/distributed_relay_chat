@@ -2,12 +2,14 @@ from typing import Callable
 
 from net_client import NetClient
 from message import Message
+from command_router import CommandRouter
 
 from threading import Thread
 
 greetings = [
-    "Welcome! Commands:",
-    "/connect - connect to relay",
+    "Welcome!",
+    "Commands:",
+    "/c, /connect - connect to relay",
 ]
 
 
@@ -16,11 +18,14 @@ class Client:
         self.user_name = "blank_name"
         self.client_chat_name = "c/client"
 
-        self.on_message_callback: Callable[[], None] = lambda: None
-        self.on_chat_added_callback: Callable[[], None] = lambda: None
-        self.on_chat_removed_callback: Callable[[], None] = lambda: None
+        self.on_message_callback: Callable[[]] = lambda: None
+        self.on_chat_added_callback: Callable[[]] = lambda: None
+        self.on_chat_removed_callback: Callable[[]] = lambda: None
 
         self.net_client = NetClient(self.client_chat_name)
+
+        self.command_router = CommandRouter()
+        self.__setup_command_router()
 
         self.chats: dict[str, list[Message]] = {}
         self.add_chat(self.client_chat_name)
@@ -30,9 +35,20 @@ class Client:
 
         self.connection_thread: Thread | None = None
 
+    def __setup_command_router(self):
+        connect_args = {"ip": "localhost", "port": "1409"}
+        self.command_router.add_command(
+            "/connect", self.start_connection_thread, connect_args
+        )
+        self.command_router.add_command(
+            "/c", self.start_connection_thread, connect_args
+        )
+
+        self.command_router.add_command("/d", self.stop, {})
+
     ### РАБОТА ПОДКЛЮЧЕНИЯ ###
-    def run(self):
-        if not self.net_client.connect():
+    def connect_to_relay(self, ip: str, port: str):
+        if not self.net_client.connect(ip, port):
             self.add_client_text("Connection refused")
             return
         self.add_client_text("Connected")
@@ -46,6 +62,7 @@ class Client:
     def stop(self):
         if self.net_client.ws.connected:
             self.net_client.ws.close()
+
     ### РАБОТА С ЧАТАМИ ###
     def add_chat(self, chat_name):
         self.chats[chat_name] = []
@@ -73,14 +90,16 @@ class Client:
             self.handle_client_msg(text)
         elif not self.net_client.send(msg):
             self.add_client_text("No server")
-    
-    def handle_client_msg(self, text: str):
-        if text == "/connect":
-            if self.connection_thread and self.connection_thread.is_alive():
-                self.add_client_text("Already connected")
-            else:
-                self.start_connection_thread()
 
-    def start_connection_thread(self):
-        self.connection_thread = Thread(target=self.run)
-        self.connection_thread.start()
+    def handle_client_msg(self, text: str):
+        if text.startswith("/") and not self.command_router.route(text):
+            self.add_client_text("Unknown or Error")
+
+    def start_connection_thread(self, ip: str, port: str):
+        if self.connection_thread and self.connection_thread.is_alive():
+            self.add_client_text("Already connected")
+        else:
+            self.connection_thread = Thread(
+                target=self.connect_to_relay, args=(ip, port)
+            )
+            self.connection_thread.start()

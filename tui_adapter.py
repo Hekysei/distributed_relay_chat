@@ -39,6 +39,7 @@ class TUI_Adapter:
     def iter(self):
         # int - специальные ключи, str - символ
         c: Union[int, str] = self.stdscr.get_wch()
+        # self.client.send_text(self.active_chat, str(c))
         if c == "\t":
             self.step_chat()
         if isinstance(c, int):
