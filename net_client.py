@@ -5,9 +5,11 @@ from message import Message, json_to_message, message_to_json
 
 
 class NetClient:
-    def __init__(self):
+    def __init__(self, chat_for_logs):
         self.server_url = "ws://localhost:1409"
         self.ws: websocket.WebSocket = websocket.WebSocket()
+
+        self.chat_for_logs = chat_for_logs
 
     def connect(self) -> bool:
         try:
@@ -27,7 +29,7 @@ class NetClient:
             except websocket.WebSocketConnectionClosedException:
                 break
             except Exception as e:
-                yield Message("system", "net_client", str(e))
+                yield Message(self.chat_for_logs, "net_client", str(e))
                 break
 
     def send(self, msg: Message):

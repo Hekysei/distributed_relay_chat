@@ -11,7 +11,7 @@ class TUI_Adapter:
         self.client = client
 
         self.input_buffer = ""
-        self.active_chat = list(self.client.chats.keys())[0] # первый чат
+        self.active_chat = list(self.client.chats.keys())[0]  # первый чат
         self.active_chat_idx = 0
 
         self.msg_win: curses.window
@@ -21,10 +21,10 @@ class TUI_Adapter:
         self.is_stoped = False
         self.fresah_draw()
 
+    ### РАБОТА TUI ###
     def run(self):
         curses.curs_set(0)
         # curses.use_default_colors()
-
         try:
             while not self.is_stoped:
                 self.iter()
@@ -35,7 +35,7 @@ class TUI_Adapter:
         # int - специальные ключи, str - символ
         c: Union[int, str] = self.stdscr.get_wch()
         if c == "\t":
-            self.change_chat()
+            self.step_chat()
         if isinstance(c, int):
             if c == curses.KEY_RESIZE:
                 self.fresah_draw()
@@ -56,16 +56,7 @@ class TUI_Adapter:
                 self.input_buffer += c
                 self.update_input()
 
-    def fresah_draw(self):
-        self.stdscr.erase()
-        self.stdscr.refresh()
-
-        self.resize_windows()
-
-        self.update_messages()
-        self.update_input()
-        self.update_bar()
-
+    ### ОБРАБОТКА СОБЫТИЙ ###
     def backspace(self):
         if self.input_buffer:
             self.input_buffer = self.input_buffer[:-1]
@@ -77,12 +68,27 @@ class TUI_Adapter:
             self.update_input()
             self.client.send_text(self.active_chat, text)
 
-    def change_chat(self):
+    def step_chat(self, step=1):
         chats = list(self.client.chats.keys())
-        self.active_chat_idx = (self.active_chat_idx + 1) % len(chats)
+        self.active_chat_idx = (self.active_chat_idx + step) % len(chats)
         self.active_chat = chats[self.active_chat_idx]
         self.update_bar()
         self.update_messages()
+
+    def handle_chat_removed(self):
+        self.step_chat(0)
+        self.update_bar()
+
+    ### РАБОТА С ОКНАМИ ###
+    def fresah_draw(self):
+        self.stdscr.erase()
+        self.stdscr.refresh()
+
+        self.resize_windows()
+
+        self.update_messages()
+        self.update_input()
+        self.update_bar()
 
     def create_window(self, h, w, y, x) -> curses.window:
         area = curses.newwin(h, w, y, x)
