@@ -30,7 +30,7 @@ class ClientHandler:
         await self.send_direct_message(msg.text)
 
     async def send_direct_message(self, text: str):
-        await self.ws.send(message_to_json(Message("server", "relay", text)))
+        await self.ws.send(message_to_json(Message("r/relay", "relay", text)))
 
     async def close(self):
         connected_clients.remove(self)

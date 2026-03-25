@@ -11,7 +11,8 @@ class TUI_Adapter:
         self.client = client
 
         self.input_buffer = ""
-        self.active_chat = "c/"
+        self.active_chat = list(self.client.chats.keys())[0] # первый чат
+        self.active_chat_idx = 0
 
         self.msg_win: curses.window
         self.inp_win: curses.window
@@ -34,7 +35,7 @@ class TUI_Adapter:
         # int - специальные ключи, str - символ
         c: Union[int, str] = self.stdscr.get_wch()
         if c == "\t":
-            self.client.send_text("tab")
+            self.change_chat()
         if isinstance(c, int):
             if c == curses.KEY_RESIZE:
                 self.fresah_draw()
@@ -60,6 +61,7 @@ class TUI_Adapter:
         self.stdscr.refresh()
 
         self.resize_windows()
+
         self.update_messages()
         self.update_input()
         self.update_bar()
@@ -73,7 +75,14 @@ class TUI_Adapter:
         if text := self.input_buffer.strip():
             self.input_buffer = ""
             self.update_input()
-            self.client.send_text(text)
+            self.client.send_text(self.active_chat, text)
+
+    def change_chat(self):
+        chats = list(self.client.chats.keys())
+        self.active_chat_idx = (self.active_chat_idx + 1) % len(chats)
+        self.active_chat = chats[self.active_chat_idx]
+        self.update_bar()
+        self.update_messages()
 
     def create_window(self, h, w, y, x) -> curses.window:
         area = curses.newwin(h, w, y, x)
@@ -106,7 +115,7 @@ class TUI_Adapter:
             height, width = self.msg_win.getmaxyx()
 
             i = height - 1
-            for msg in reversed(self.client.messages):
+            for msg in reversed(self.client.chats[self.active_chat]):
                 row = f"{msg.author}: {msg.text}"
                 self.msg_win.insstr(i, 0, row[:width])
                 i -= 1
@@ -123,15 +132,13 @@ class TUI_Adapter:
             self.inp_win.insstr(0, 0, ">" + self.input_buffer[:width])
             self.inp_win.refresh()
 
-
     def update_bar(self):
         if not self.is_stoped:
             self.bar_win.clear()
 
             for i, chat in enumerate(self.client.chats.keys()):
                 self.bar_win.insstr(i, 1, chat)
-                
-                if self.active_chat == chat:
-                    self.bar_win.addch(i,0,">")
-            
+
+            self.bar_win.addch(self.active_chat_idx, 0, ">")
+
             self.bar_win.refresh()
