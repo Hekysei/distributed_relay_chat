@@ -6,8 +6,8 @@ from client import Client
 
 
 class TUI_Adapter:
-    def __init__(self, stdscr: curses.window, client: Client):
-        self.stdscr = stdscr
+    def __init__(self, client: Client):
+        self.stdscr: curses.window
         self.client = client
 
         self.input_buffer = ""
@@ -19,10 +19,15 @@ class TUI_Adapter:
         self.bar_win: curses.window
 
         self.is_stoped = False
-        self.fresah_draw()
+
+    def run(self):
+        curses.wrapper(self.__run_in_wrapper)
 
     ### РАБОТА TUI ###
-    def run(self):
+    def __run_in_wrapper(self, stdscr: curses.window):
+        self.stdscr = stdscr
+        self.fresah_draw()
+
         curses.curs_set(0)
         # curses.use_default_colors()
         try:

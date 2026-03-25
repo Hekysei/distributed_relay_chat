@@ -30,6 +30,7 @@ class Client:
 
         self.connection_thread: Thread | None = None
 
+    ### РАБОТА ПОДКЛЮЧЕНИЯ ###
     def run(self):
         if not self.net_client.connect():
             self.add_client_text("Connection refused")
@@ -42,22 +43,26 @@ class Client:
         self.add_client_text("Сonnection lost")
         self.remove_chat("r/relay")
 
+    def stop(self):
+        if self.net_client.ws.connected:
+            self.net_client.ws.close()
+    ### РАБОТА С ЧАТАМИ ###
     def add_chat(self, chat_name):
         self.chats[chat_name] = []
         self.on_chat_added_callback()
-    
+
     def remove_chat(self, chat_name):
         self.chats.pop(chat_name)
         self.on_chat_removed_callback()
 
+    ### ДОБАВЛЕНИЕ СООБЩЕНИЯ В ЧАТ ###
     def add_message(self, msg: Message):
+        if msg.chat not in self.chats:
+            self.add_chat(msg.chat)
         self.chats[msg.chat].append(msg)
         self.on_message_callback()
 
-    def stop(self):
-        if self.net_client.ws.connected:
-            self.net_client.ws.close()
-
+    ### ОТПРАВКА ТЕКСТА ###
     def add_client_text(self, text: str):
         self.add_message(Message(self.client_chat_name, "client", text))
 
@@ -68,7 +73,7 @@ class Client:
             self.handle_client_msg(text)
         elif not self.net_client.send(msg):
             self.add_client_text("No server")
-
+    
     def handle_client_msg(self, text: str):
         if text == "/connect":
             if self.connection_thread and self.connection_thread.is_alive():

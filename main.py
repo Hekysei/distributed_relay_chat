@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 
 
-from curses import wrapper, window
-
 from tui_adapter import TUI_Adapter
 from client import Client
 
@@ -10,19 +8,14 @@ from client import Client
 class APP:
     def __init__(self):
         self.client = Client()
+        self.tui_adapter = TUI_Adapter(self.client)
+
+        self.client.on_message_callback = self.tui_adapter.update_messages
+        self.client.on_chat_added_callback = self.tui_adapter.update_bar
+        self.client.on_chat_removed_callback = self.tui_adapter.handle_chat_removed
 
     def run(self):
-        wrapper(self.__run_in_wrapper)
-
-    def __run_in_wrapper(self, stdscr: window):
-        tui_adapter = TUI_Adapter(stdscr, self.client)
-
-        self.client.on_message_callback = tui_adapter.update_messages
-        self.client.on_chat_added_callback = tui_adapter.update_bar
-        self.client.on_chat_removed_callback = tui_adapter.handle_chat_removed
-
-        tui_adapter.run()
-
+        self.tui_adapter.run()
         self.client.stop()
 
 
