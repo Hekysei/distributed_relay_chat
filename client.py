@@ -17,7 +17,7 @@ class Client:
         if self.net_client.connect():
             for msg in self.net_client.recv_loop():
                 msg: Message
-                self.add_sys_message(f"{msg.author}: {msg.text}")
+                self.add_message(msg)
         self.add_sys_message("Сonnection lost")
 
     def stop(self):
