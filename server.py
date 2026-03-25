@@ -18,6 +18,7 @@ class ClientHandler:
     async def run(self):
         connected_clients.add(self)
         try:
+            await self.send_direct_message("Welcome to relay")
             async for data in self.ws:
                 await self.handle_recv(data)
         finally:
@@ -30,7 +31,7 @@ class ClientHandler:
         await self.send_direct_message(msg.text)
 
     async def send_direct_message(self, text: str):
-        await self.ws.send(message_to_json(Message("r/relay", "relay", text)))
+        await self.ws.send(message_to_json(Message("c/relay", "relay", text)))
 
     async def close(self):
         connected_clients.remove(self)
@@ -49,8 +50,8 @@ async def connection_factory(websocket):
 
 
 async def main():
-    async with websockets.serve(connection_factory, "0.0.0.0", 1409):
-        print("Server started on 0.0.0.0:1409. Press Ctrl+C to stop.")
+    async with websockets.serve(connection_factory, "localhost", 1409):
+        print("Server started. Press Ctrl+C to stop.")
 
         loop = asyncio.get_running_loop()
         stop_future = loop.create_future()
@@ -66,9 +67,9 @@ async def main():
         await stop_future
 
         print("Closing all client connections...")
-        await asyncio.gather(
-            *[client.close() for client in connected_clients], return_exceptions=True
-        )
+        # await asyncio.gather(
+        #     *[client.close() for client in connected_clients], return_exceptions=True
+        # )
         sys.exit(0)
 
 

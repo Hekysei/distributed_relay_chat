@@ -52,12 +52,14 @@ class Client:
             self.add_client_text("Connection refused")
             return
         self.add_client_text("Connected")
-        self.add_chat("r/relay")
         for msg in self.net_client.recv_loop():
             msg: Message
             self.add_message(msg)
         self.add_client_text("Сonnection lost")
-        self.remove_chat("r/relay")
+
+        for chat_name in list(self.chats.keys()):
+            if chat_name != self.client_chat_name:
+                self.remove_chat(chat_name)
 
     def stop(self):
         if self.net_client.ws.connected:

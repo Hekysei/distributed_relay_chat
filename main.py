@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
 
-from tui_adapter import TUI_Adapter
 from client import Client
+from tui_adapter import TUI_Adapter
 
 
 class APP:
