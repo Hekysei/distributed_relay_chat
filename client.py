@@ -18,21 +18,15 @@ from command_router import CommandRouter
 
 
 class Bot:
-    def __init__(self, chat_name, bot_name, send_text):
-        self.chat_name = chat_name
-        self.bot_name = bot_name
-
+    def __init__(self, send_text):
         self.command_router = CommandRouter()
 
-        self.client_send_text: Callable[[str, str, str]] = send_text
+        self.send_text: Callable[[str]] = send_text
         for greet in greetings:
             self.send_text(greet)
 
     def add_command(self, command: str, function: Callable[...], args: dict[str, str]):
         self.command_router.add_command(command, function, args)
-
-    def send_text(self, text: str):
-        self.client_send_text(self.chat_name, self.bot_name, text)
 
     def on_text(self, text: str):
         if text.startswith("/") and not self.command_router.route(text):
@@ -44,23 +38,32 @@ class Chat:
         self.name = name
         self.messages: list[Message] = []
 
-    def add_message(self, msg: Message):
+    def _add_message(self, msg: Message):
         self.messages.append(msg)
+
+    def send_message(self, msg: Message):
+        self._add_message(msg)
 
 
 class ChatBot(Chat):
-    def __init__(self, name, bot_name, send_text):
+    def __init__(self, name, bot_name):
         super().__init__(name)
-        self.bot = Bot(name, bot_name, send_text)
+        self.bot = Bot(
+            lambda text: self._add_message(Message(name, bot_name, text)),
+        )
 
     def add_commands(self, commands: list):
         for command in commands:
             self.bot.add_command(*command)
 
+    def send_message(self, msg: Message):
+        super().send_message(msg)
+        self.bot.on_text(msg.text)
+
 
 class ClientChatBot(ChatBot):
     def __init__(self, client):
-        super().__init__("c/client", "client", client.send_text)
+        super().__init__("c/client", "client")
 
         CONNECT_ARGS = {"ip": "localhost", "port": "1409"}
         CLIENT_COMMANDS = [
@@ -89,7 +92,7 @@ class Client:
     ### РАБОТА ПОДКЛЮЧЕНИЯ ###
     def start_connection_thread(self, ip: str, port: str):
         if self.connection_thread and self.connection_thread.is_alive():
-            self.send_text_to_user("Already connected")
+            self.__send_text_to_user("Already connected")
         else:
             self.connection_thread = Thread(
                 target=self.connect_to_relay, args=(ip, port)
@@ -98,13 +101,13 @@ class Client:
 
     def connect_to_relay(self, ip: str, port: str):
         if not self.net_client.connect(ip, port):
-            self.send_text_to_user("Connection refused")
+            self.__send_text_to_user("Connection refused")
             return
-        self.send_text_to_user("Connected")
+        self.__send_text_to_user("Connected")
         for msg in self.net_client.recv_loop():
             msg: Message
             self.__add_message(msg)
-        self.send_text_to_user("Сonnection lost")
+        self.__send_text_to_user("Сonnection lost")
 
         for chat_name in list(self.chats.keys()):
             if chat_name != self.chat_bot.name:
@@ -115,11 +118,11 @@ class Client:
             self.net_client.ws.close()
 
     ### РАБОТА С ЧАТАМИ ###
-    def add_chat(self, chat :Chat):
+    def add_chat(self, chat: Chat):
         self.chats[chat.name] = chat
         self.on_chat_added_callback()
 
-    def create_chat(self, chat_name:str):
+    def create_chat(self, chat_name: str):
         self.add_chat(Chat(chat_name))
 
     def remove_chat(self, chat_name):
@@ -130,21 +133,17 @@ class Client:
     def __add_message(self, msg: Message):
         if msg.chat not in self.chats:
             self.create_chat(msg.chat)
-        self.chats[msg.chat].add_message(msg)
+        self.chats[msg.chat].send_message(msg)
         self.on_message_callback()
 
     ### ОТПРАВКА ТЕКСТА ###
-    def send_text(self, chat: str, author: str, text: str):
-        msg = Message(chat, author, text)
+
+    def send_user_text(self, chat: str, text: str):
+        msg = Message(chat, self.user_name, text)
         self.__add_message(msg)
 
         if not chat.startswith("c/") and not self.net_client.send(msg):
-            self.send_text_to_user("No server")
+            self.__send_text_to_user("No server")
 
-    def send_user_text(self, chat: str, text: str):
-        if chat == self.chat_bot.name:
-            self.chat_bot.bot.on_text(text)
-        self.send_text(chat, self.user_name, text)
-
-    def send_text_to_user(self, text: str):
+    def __send_text_to_user(self, text: str):
         self.chat_bot.bot.send_text(text)
