@@ -62,7 +62,7 @@ class Relay:
     async def run(self):
         await self.server.run()
 
-    def on_message(self, msg: Message):
+    async def on_message(self, msg: Message):
         print(msg)
 
     async def start_handler(self, ws: websockets.ServerConnection):

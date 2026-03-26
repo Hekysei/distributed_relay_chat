@@ -6,6 +6,7 @@ import json
 # c/ - client
 # r/ - room
 # u/ - user
+# e/ - erroe
 
 
 @dataclass

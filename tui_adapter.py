@@ -3,7 +3,9 @@ import curses
 from typing import Union
 
 from client import Client
+from threading import  Lock
 
+mutex = Lock()
 
 class TUI_Adapter:
     def __init__(self, client: Client):
@@ -116,45 +118,44 @@ class TUI_Adapter:
         self.msg_win = self.create_window(msg_height, msg_width, 0, bar_width)
         self.inp_win = self.create_window(inp_height, msg_width, msg_height, bar_width)
 
-        self.msg_win_lock = False
-
         self.stdscr.refresh()
 
         self.msg_win.scrollok(False)
         self.inp_win.scrollok(False)
 
     def update_messages(self):
-        if not self.is_stoped and not self.msg_win_lock:
-            self.msg_win_lock = True
-            self.msg_win.erase()
-            height, width = self.msg_win.getmaxyx()
+        with mutex:
+            if not self.is_stoped:
+                self.msg_win.erase()
+                height, width = self.msg_win.getmaxyx()
 
-            i = height - 1
-            for msg in reversed(self.client.chats[self.active_chat].messages):
-                row = f"{msg.author}: {msg.text}"
-                self.msg_win.insstr(i, 0, row[:width])
-                i -= 1
-                if i == -1:
-                    break
+                i = height - 1
+                for msg in reversed(self.client.chats[self.active_chat].messages):
+                    row = f"{msg.author}: {msg.text}"
+                    self.msg_win.insstr(i, 0, row[:width])
+                    i -= 1
+                    if i == -1:
+                        break
 
-            self.msg_win.refresh()
-            self.msg_win_lock = False
+                self.msg_win.refresh()
 
     def update_input(self):
-        if not self.is_stoped:
-            self.inp_win.erase()
-            _, width = self.inp_win.getmaxyx()
+        with mutex:
+            if not self.is_stoped:
+                self.inp_win.erase()
+                _, width = self.inp_win.getmaxyx()
 
-            self.inp_win.insstr(0, 0, ">" + self.input_buffer[:width])
-            self.inp_win.refresh()
+                self.inp_win.insstr(0, 0, ">" + self.input_buffer[:width])
+                self.inp_win.refresh()
 
     def update_bar(self):
-        if not self.is_stoped:
-            self.bar_win.clear()
+        with mutex:
+            if not self.is_stoped:
+                self.bar_win.clear()
 
-            for i, chat in enumerate(self.client.chats.keys()):
-                self.bar_win.insstr(i, 1, chat)
+                for i, chat in enumerate(self.client.chats.keys()):
+                    self.bar_win.insstr(i, 1, chat)
 
-            self.bar_win.addch(self.active_chat_idx, 0, ">")
+                self.bar_win.addch(self.active_chat_idx, 0, ">")
 
-            self.bar_win.refresh()
+                self.bar_win.refresh()
