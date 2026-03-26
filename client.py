@@ -10,6 +10,7 @@ greetings = [
     "Welcome!",
     "Commands:",
     "/c, /connect - connect to relay",
+    "/d - disconnect"
 ]
 
 
