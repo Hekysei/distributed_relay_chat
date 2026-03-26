@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 
 
-from client import Client
-from chat import ChatBot
-from tui_adapter import TUI_Adapter
+from src.client.client import Client
+from src.chat import ChatBot
+from src.app.tui_adapter import TUI_Adapter
 
 
 class ClientChatBot(ChatBot):
@@ -27,16 +27,13 @@ class APPClient(Client):
 
     def __send_text_to_user(self, text: str):
         self.chat_bot.bot.send_text(text)
-    
+
     def send_user_text(self, chat: str, text: str) -> bool:
-        if not chat.startswith("c/"):
-            res = super().send_user_text(chat, text)
-            if not res:
-                self.__send_text_to_user("No server")
-            return res
-        self.on_message_callback()
-        return True
-    
+        res = super().send_user_text(chat, text)
+        if not res:
+            self.__send_text_to_user("No server")
+        return res
+
     def start_connection_thread(self, ip: str, port: str) -> bool:
         res = super().start_connection_thread(ip, port)
         if not res:
@@ -44,7 +41,7 @@ class APPClient(Client):
         # else:
         #     self.__send_text_to_user(f"Start connecting to {ip}:{port}")
         return res
-    
+
     def connect_to_relay(self, ip: str, port: str) -> bool:
         res = super().connect_to_relay(ip, port)
         if res:
@@ -56,7 +53,7 @@ class APPClient(Client):
     def recv_loop(self):
         super().recv_loop()
         self.__send_text_to_user("Сonnection lost")
-    
+
         for chat_name in list(self.chats.keys()):
             if chat_name != self.chat_bot.name:
                 self.remove_chat(chat_name)

@@ -1,7 +1,7 @@
 import websocket
 from typing import Generator
 
-from message import Message, json_to_message, message_to_json
+from src.message import Message, json_to_message, message_to_json
 
 
 class NetClient:

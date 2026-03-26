@@ -1,5 +1,7 @@
 from typing import Callable
-from command_router import CommandRouter
+
+
+from src.command_router import CommandRouter
 
 greetings = [
     "Welcome!",
@@ -7,6 +9,7 @@ greetings = [
     "/c, /connect - connect to relay",
     "/d - disconnect",
 ]
+
 
 class Bot:
     def __init__(self, send_text):

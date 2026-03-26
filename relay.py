@@ -5,8 +5,8 @@ import websockets
 
 from typing import Callable
 
-from message import Message, json_to_message, message_to_json
-from server import Server
+from src.message import Message, json_to_message, message_to_json
+from src.relay.server import Server
 
 
 class ConnectionHandler:

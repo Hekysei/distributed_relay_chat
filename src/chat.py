@@ -1,5 +1,5 @@
-from message import Message
-from bot import Bot
+from src.message import Message
+from src.bot import Bot
 
 class Chat:
     def __init__(self, name):

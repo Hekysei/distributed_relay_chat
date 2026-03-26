@@ -1,12 +1,11 @@
 from typing import Callable
 
-from net_client import NetClient
-from message import Message
-
 from threading import Thread
 
 
-from chat import Chat
+from src.client.net_client import NetClient
+from src.message import Message
+from src.chat import Chat
 
 
 class Client:
