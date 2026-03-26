@@ -125,7 +125,7 @@ class TUI_Adapter:
 
     def update_messages(self):
         if not self.is_stoped and not self.msg_win_lock:
-            self.msg_win_lock=True
+            self.msg_win_lock = True
             self.msg_win.erase()
             height, width = self.msg_win.getmaxyx()
 
