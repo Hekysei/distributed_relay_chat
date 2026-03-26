@@ -116,13 +116,16 @@ class TUI_Adapter:
         self.msg_win = self.create_window(msg_height, msg_width, 0, bar_width)
         self.inp_win = self.create_window(inp_height, msg_width, msg_height, bar_width)
 
+        self.msg_win_lock = False
+
         self.stdscr.refresh()
 
         self.msg_win.scrollok(False)
         self.inp_win.scrollok(False)
 
     def update_messages(self):
-        if not self.is_stoped:
+        if not self.is_stoped and not self.msg_win_lock:
+            self.msg_win_lock=True
             self.msg_win.erase()
             height, width = self.msg_win.getmaxyx()
 
@@ -135,6 +138,7 @@ class TUI_Adapter:
                     break
 
             self.msg_win.refresh()
+            self.msg_win_lock = False
 
     def update_input(self):
         if not self.is_stoped:
