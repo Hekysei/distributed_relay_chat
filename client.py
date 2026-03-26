@@ -83,31 +83,29 @@ class Client:
         self.on_chat_added_callback: Callable[[]] = lambda: None
         self.on_chat_removed_callback: Callable[[]] = lambda: None
 
-        self.chat_bot = ClientChatBot(self)
-        self.add_chat(self.chat_bot)
-        self.net_client = NetClient(self.chat_bot.name)
+        self.net_client = NetClient()
 
         self.connection_thread: Thread | None = None
 
     ### РАБОТА ПОДКЛЮЧЕНИЯ ###
-    def start_connection_thread(self, ip: str, port: str):
+    def start_connection_thread(self, ip: str, port: str) -> bool:
         if self.connection_thread and self.connection_thread.is_alive():
-            self.__send_text_to_user("Already connected")
+            return False
         else:
             self.connection_thread = Thread(
                 target=self.connect_to_relay, args=(ip, port)
             )
             self.connection_thread.start()
+            return True
 
     def connect_to_relay(self, ip: str, port: str):
         if not self.net_client.connect(ip, port):
-            self.__send_text_to_user("Connection refused")
+            # self.__send_text_to_user("Connection refused")
             return
-        self.__send_text_to_user("Connected")
+        # self.__send_text_to_user("Connected")
         for msg in self.net_client.recv_loop():
             msg: Message
             self.__add_message(msg)
-        self.__send_text_to_user("Сonnection lost")
 
         # for chat_name in list(self.chats.keys()):
         #     if chat_name != self.chat_bot.name:
@@ -136,12 +134,38 @@ class Client:
         self.on_message_callback()
 
     ### ОТПРАВКА ТЕКСТА ###
-    def send_user_text(self, chat: str, text: str):
+    def send_user_text(self, chat: str, text: str) -> bool:
         msg = Message(chat, self.user_name, text)
         self.__add_message(msg)
+        
+        return self.net_client.send(msg)
 
-        if not chat.startswith("c/") and not self.net_client.send(msg):
-            self.__send_text_to_user("No server")
+
+
+class APPClient(Client):
+    def __init__(self):
+        super().__init__()
+        self.chat_bot = ClientChatBot(self)
+        self.add_chat(self.chat_bot)
 
     def __send_text_to_user(self, text: str):
         self.chat_bot.bot.send_text(text)
+    
+    def send_user_text(self, chat: str, text: str) -> bool:
+        res = super().send_user_text(chat,text)
+        if not chat.startswith("c/") and not res:
+            self.__send_text_to_user("No server")
+        return res
+
+    def start_connection_thread(self, ip: str, port: str) -> bool:
+        res = super().start_connection_thread(ip,port)
+        if res:
+            self.__send_text_to_user(f"Start connecting to {ip}:{port}")
+        else:
+            self.__send_text_to_user("Already connected")
+        return res
+
+    def connect_to_relay(self, ip: str, port: str):
+        super().connect_to_relay(ip,port)
+        self.__send_text_to_user("Сonnection lost")
+

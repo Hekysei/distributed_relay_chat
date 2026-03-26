@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 
 
-from client import Client
+from client import APPClient
 from tui_adapter import TUI_Adapter
 
 
 class APP:
     def __init__(self):
-        self.client = Client()
+        self.client = APPClient()
         self.tui_adapter = TUI_Adapter(self.client)
 
         self.client.on_message_callback = self.tui_adapter.update_messages
