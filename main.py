@@ -16,7 +16,7 @@ class APP:
 
     def run(self):
         self.tui_adapter.run()
-        self.client.stop()
+        self.client.disconnect()
 
 
 if __name__ == "__main__":

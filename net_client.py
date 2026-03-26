@@ -22,7 +22,7 @@ class NetClient:
             try:
                 data: str | bytes = self.ws.recv()
                 if not data:
-                    print("Connection closed")
+                    # print("Connection closed")
                     break
                 yield json_to_message(data)
             except websocket.WebSocketConnectionClosedException:
@@ -32,7 +32,17 @@ class NetClient:
                 break
 
     def send(self, msg: Message):
-        if self.ws.connected:
-            self.ws.send(message_to_json(msg))
-            return True
+        try:
+            if self.ws.connected:
+                self.ws.send(message_to_json(msg))
+                return True
+        except Exception as e:
+            print(e)
         return False
+
+    def disconnect(self):
+        try:
+            if self.ws:
+                self.ws.close()
+        except Exception as e:
+            print(e)

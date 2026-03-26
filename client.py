@@ -69,7 +69,7 @@ class ClientChatBot(ChatBot):
         CLIENT_COMMANDS = [
             ("/connect", client.start_connection_thread, CONNECT_ARGS),
             ("/c", client.start_connection_thread, CONNECT_ARGS),
-            ("/d", client.stop, {}),
+            ("/d", client.disconnect, {}),
         ]
         self.add_commands(CLIENT_COMMANDS)
 
@@ -109,13 +109,12 @@ class Client:
             self.__add_message(msg)
         self.__send_text_to_user("Сonnection lost")
 
-        for chat_name in list(self.chats.keys()):
-            if chat_name != self.chat_bot.name:
-                self.remove_chat(chat_name)
+        # for chat_name in list(self.chats.keys()):
+        #     if chat_name != self.chat_bot.name:
+        #         self.remove_chat(chat_name)
 
-    def stop(self):
-        if self.net_client.ws.connected:
-            self.net_client.ws.close()
+    def disconnect(self):
+        self.net_client.disconnect()
 
     ### РАБОТА С ЧАТАМИ ###
     def add_chat(self, chat: Chat):
@@ -137,7 +136,6 @@ class Client:
         self.on_message_callback()
 
     ### ОТПРАВКА ТЕКСТА ###
-
     def send_user_text(self, chat: str, text: str):
         msg = Message(chat, self.user_name, text)
         self.__add_message(msg)
