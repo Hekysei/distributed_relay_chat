@@ -9,7 +9,7 @@ greetings = [
 ]
 
 
-class ChatBot:
+class Bot:
     def __init__(self, chat_name, bot_name, send_text):
         self.chat_name = chat_name
         self.bot_name = bot_name

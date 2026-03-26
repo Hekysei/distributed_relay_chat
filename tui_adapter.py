@@ -127,7 +127,7 @@ class TUI_Adapter:
             height, width = self.msg_win.getmaxyx()
 
             i = height - 1
-            for msg in reversed(self.client.chats[self.active_chat]):
+            for msg in reversed(self.client.chats[self.active_chat].messages):
                 row = f"{msg.author}: {msg.text}"
                 self.msg_win.insstr(i, 0, row[:width])
                 i -= 1
