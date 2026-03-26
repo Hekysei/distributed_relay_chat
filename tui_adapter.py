@@ -72,7 +72,7 @@ class TUI_Adapter:
         if text := self.input_buffer.strip():
             self.input_buffer = ""
             self.update_input()
-            self.client.send_text(self.active_chat, text)
+            self.client.send_user_text(self.active_chat, text)
 
     def step_chat(self, step=1):
         chats = list(self.client.chats.keys())
