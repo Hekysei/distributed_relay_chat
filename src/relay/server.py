@@ -4,17 +4,37 @@ import signal
 
 from typing import Callable
 
+from src.message import Message, json_to_message, message_to_json
+
+
+class ConnectionHandler:
+    def __init__(self, ws: websockets.ServerConnection):
+        self.ws = ws
+
+    async def recv_loop(self):
+        try:
+            async for data in self.ws:
+                data: str | bytes
+                yield json_to_message(data)
+        except Exception as e:
+            print(e)
+
+    async def send_message(self, msg: Message):
+        await self.ws.send(message_to_json(msg))
+
 
 class Server:
     def __init__(self):
         self.active_connections: set[websockets.ServerConnection] = set()
 
-        self.on_connection_callback: Callable[[websockets.ServerConnection]]
+        self.on_connection_callback: Callable[[ConnectionHandler]]
 
     async def handler_factory(self, ws: websockets.ServerConnection):
         self.active_connections.add(ws)
 
-        await self.on_connection_callback(ws)
+        connection_handler = ConnectionHandler(ws)
+
+        await self.on_connection_callback(connection_handler)
 
         await ws.close()
         self.active_connections.remove(ws)

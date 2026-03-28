@@ -1,73 +1,62 @@
 #!/usr/bin/env python3
 
 import asyncio
-import websockets
 
 from typing import Callable
 
-from src.message import Message, json_to_message, message_to_json
-from src.relay.server import Server
+from src.message import Message
+from src.relay.server import Server, ConnectionHandler
 
-
-class ConnectionHandler:
-    def __init__(self, ws: websockets.ServerConnection):
-        self.ws = ws
-
-    async def recv_loop(self):
-        try:
-            async for data in self.ws:
-                data: str | bytes
-                yield json_to_message(data)
-        except Exception as e:
-            print(e)
-
-    async def send_message(self, msg: Message):
-        await self.ws.send(message_to_json(msg))
+RELAY_CHAT_NAME = "r/relay"
 
 
 class ClientHandler:
-    def __init__(self, relay_call: Callable[[Message]]):
-        self.connection_handler: ConnectionHandler
-        self.relay_chat_name = "r/relay"
+    def __init__(
+        self,
+        connection_handler: ConnectionHandler,
+        send_message_to_relay: Callable[[Message]],
+    ):
+        self.connection_handler = connection_handler
+        self.send_message_to_client = connection_handler.send_message
+        self.send_message_to_relay = send_message_to_relay
 
-        self.relay_call = relay_call
-
-    async def run(self, ws: websockets.ServerConnection):
-        self.connection_handler = ConnectionHandler(ws)
-
+    async def run(self):
         await self.on_start()
         async for msg in self.connection_handler.recv_loop():
             await self.on_msg(msg)
 
     async def on_start(self):
-        await self.send_direct_text("Welcome to relay")
+        await self.send_text_to_client("Welcome to relay")
 
     async def on_msg(self, msg: Message):
-        if msg.chat == self.relay_chat_name:
-            await self.send_direct_text("Got: " + msg.text)
+        if msg.chat == RELAY_CHAT_NAME:
+            await self.send_text_to_client("Got: " + msg.text)
         else:
-            await self.relay_call(msg)
+            await self.send_message_to_relay(msg)
 
-    async def send_direct_text(self, text: str):
-        await self.connection_handler.send_message(
-            Message(self.relay_chat_name, "relay", text)
-        )
+    async def send_text_to_client(self, text: str):
+        await self.send_message_to_client(Message(RELAY_CHAT_NAME, "relay", text))
 
 
 class Relay:
     def __init__(self):
         self.server = Server()
         self.server.on_connection_callback = self.start_handler
+        self.handlers: set[ClientHandler] = set()
+        self.rooms: dict[str, str] = {}
 
     async def run(self):
         await self.server.run()
 
-    async def on_message(self, msg: Message):
+    async def send_message(self, msg: Message):
         print(msg)
 
-    async def start_handler(self, ws: websockets.ServerConnection):
-        client_handler = ClientHandler(self.on_message)
-        await client_handler.run(ws)
+    async def start_handler(self, connection_handler: ConnectionHandler):
+        client_handler = ClientHandler(connection_handler, self.send_message)
+
+        self.handlers.add(client_handler)
+        await client_handler.run()
+        self.handlers.remove(client_handler)
 
 
 if __name__ == "__main__":
