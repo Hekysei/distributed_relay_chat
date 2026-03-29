@@ -16,6 +16,20 @@ class CommandRouter:
         self.commands_dict[command] = FuncArgsPair(function, args)
 
     def route(self, text: str):
+        res = self.get_func_kwargs(text)
+        if not res:
+            return False
+        res[0](**res[1])
+        return True
+
+    async def async_route(self, text: str):
+        res = self.get_func_kwargs(text)
+        if not res:
+            return False
+        await res[0](**res[1])
+        return True
+
+    def get_func_kwargs(self, text: str):
         if words := text.split():
             command = words[0]
             if command in self.commands_dict:
@@ -23,9 +37,8 @@ class CommandRouter:
                 if kwargs:
                     kwargs: dict[str, str] | None = self.parse_args(words, kwargs)
                     if not kwargs:
-                        return False
-                self.commands_dict[command].function(**kwargs)
-                return True
+                        return None
+                return self.commands_dict[command].function, kwargs
 
     def parse_args(self, words, args):
         i = 1

@@ -4,7 +4,7 @@ import json
 
 
 # c/ - client
-# r/ - room
+# r/ - relay
 # u/ - user
 # e/ - erroe
 

@@ -20,8 +20,7 @@ class ChatBot(Chat):
         self.bot = Bot(name, bot_name, self._add_message)
 
     def add_commands(self, commands: list):
-        for command in commands:
-            self.bot.add_command(*command)
+        self.bot.add_commands(commands)
 
     def send_message(self, msg: Message):
         super().send_message(msg)
