@@ -15,9 +15,13 @@ class Message:
     author: str
     text: str
     timestamp: datetime | None = None
+    user_uuid: str | None = None
 
     def set_time(self):
         self.timestamp = datetime.now()
+
+    def set_user_uuid(self, uuid: str):
+        self.user_uuid = uuid
 
 
 def json_to_message(json_str: str | bytes) -> Message:
