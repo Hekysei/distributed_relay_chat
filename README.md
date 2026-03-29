@@ -9,6 +9,9 @@
 ## TODO
 - Адекватно решить проблему curses и двух потоков
 
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/f6aba8dc-c5b1-47d6-bfe7-25a1da112ffe" />
+
+
 ### Не соотвествует реальности, но похоже (нейрослоп)
 ```mermaid
 classDiagram
