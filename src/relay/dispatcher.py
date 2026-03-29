@@ -8,11 +8,16 @@ from src.relay.server import ConnectionHandler
 
 from uuid import uuid4
 
+class Room:
+    def __init__(self):
+        pass
 
-# Strategy / State
+# Dependency Injection
+# Pub/Sub
 class Dispatcher:
     def __init__(self):
-        self.rooms: dict[str, str] = {}
+        self.rooms: dict[str, Room] = {}
+        self.handlers: set[ClientHandler] = set()
 
     async def send_message(self, msg: Message):
         print("send", msg)
