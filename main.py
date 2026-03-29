@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-
 from src.app.tui_adapter import TUI_Adapter
 from src.app.app_client import APPClient
 

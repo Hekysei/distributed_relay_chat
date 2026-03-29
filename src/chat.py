@@ -1,6 +1,7 @@
 from src.message import Message
 from src.bot import Bot
 
+
 class Chat:
     def __init__(self, name):
         self.name = name
@@ -16,9 +17,7 @@ class Chat:
 class ChatBot(Chat):
     def __init__(self, name, bot_name):
         super().__init__(name)
-        self.bot = Bot(
-            lambda text: self._add_message(Message(name, bot_name, text)),
-        )
+        self.bot = Bot(name, bot_name, self._add_message)
 
     def add_commands(self, commands: list):
         for command in commands:
@@ -27,5 +26,3 @@ class ChatBot(Chat):
     def send_message(self, msg: Message):
         super().send_message(msg)
         self.bot.on_text(msg.text)
-
-
