@@ -68,18 +68,29 @@ class RelayBot(Bot):
             RELAY_CHAT_NAME, RELAY_BOT_NAME, client_handler.send_message_to_client
         )
 
-        async def create_channel(channel_name):
+        async def create_channel(name):
             await client_handler.dispatcher.create_channel(
-                channel_name, client_handler.uuid, client_handler.send_message_to_client
+                name, client_handler.uuid, client_handler.send_message_to_client
             )
 
+        async def join_channel(name):
+            await client_handler.dispatcher.subscribe(
+                name, client_handler.uuid, client_handler.send_message_to_client
+            )
+
+        channel_name_kwargs = {
+            "name": "new_channel",
+        }
         CLIENT_COMMANDS = [
             (
                 "/create",
                 create_channel,
-                {
-                    "channel_name": "new_channel",
-                },
+                channel_name_kwargs,
+            ),
+            (
+                "/join",
+                join_channel,
+                channel_name_kwargs,
             ),
         ]
         self.add_commands(CLIENT_COMMANDS)
@@ -114,7 +125,7 @@ class ClientHandler:
         if msg.chat == RELAY_CHAT_NAME:
             await self.bot.async_on_text(msg.text)
         else:
-            await self.dispatcher.call(msg)
+            await self.dispatcher.send_message(msg, self.send_message_to_client)
 
     async def send_text_to_client(self, text: str):
         await self.send_message_to_client(

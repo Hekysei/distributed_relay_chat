@@ -67,5 +67,6 @@ class Client:
     def send_user_text(self, chat: str, text: str) -> bool:
         msg = Message(chat, self.user_name, text)
         self.__add_message(msg)
-
+        if msg.chat.startswith("c/"):
+            return True
         return self.net_client.send(msg)
