@@ -132,7 +132,7 @@ class TUI_Adapter:
 
                 i = height - 1
                 for msg in reversed(self.client.chats[self.active_chat].messages):
-                    timestamp = "sync"
+                    timestamp = "no__time"
                     if msg.timestamp:
                         timestamp = msg.timestamp.strftime("%H:%M:%S")
                     row = f"[{timestamp}] {msg.sender}: {msg.text}"

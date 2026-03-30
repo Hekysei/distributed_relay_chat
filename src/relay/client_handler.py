@@ -1,5 +1,3 @@
-from uuid import uuid4
-
 from src.relay.server import ConnectionHandler
 from src.relay.dispatcher import Dispatcher
 from src.package.package import Message, TimestampResponse, SystemMessage
@@ -39,7 +37,6 @@ class ClientHandler:
 
     async def on_start(self):
         await self.send_text_to_client("Welcome to relay")
-        await self.set_username(str(uuid4()))
 
     async def on_msg(self, msg: Message):
         msg.set_timestamp_now()
@@ -52,8 +49,9 @@ class ClientHandler:
         else:
             await self.dispatcher.send_message(msg, self.send_message_to_client)
 
-    def on_sys_msg(self, sys_msg: SystemMessage):
-        pass
+    async def on_sys_msg(self, sys_msg: SystemMessage):
+        if sys_msg.msg_type == "set_username":
+            await self.set_username(sys_msg.body)
 
     async def send_text_to_client(self, text: str):
         await self.send_message_to_client(
@@ -62,12 +60,6 @@ class ClientHandler:
             ).set_timestamp_now()
         )
 
-    async def send_username_to_client(self):
-        await self.connection_handler.send_sys_message(
-            SystemMessage(msg_type="set_username", body=self.username)
-        )
-
     async def set_username(self, name: str):
         self.username = name
         await self.send_text_to_client(f"Your name is {self.username}")
-        await self.send_username_to_client()

@@ -1,11 +1,12 @@
 import websocket
 
-from src.package.package import Message
+from src.package.package import Message, SystemMessage
 
 from src.package.package_factory import PackageFactory
 
+
 class NetClient:
-    def __init__(self, package_factory : PackageFactory):
+    def __init__(self, package_factory: PackageFactory):
         self.package_factory = package_factory
         self.ws: websocket.WebSocket = websocket.WebSocket()
 
@@ -31,14 +32,11 @@ class NetClient:
 
         return Message(chat="c/client", sender="net_client", text="breaker")
 
-    def send(self, msg: Message)->bool:
-        try:
-            if self.ws.connected:
-                self.ws.send(msg.to_json())
-                return True
-        except Exception as e:
-            print(e)
-        return False
+    def send_message(self, msg: Message):
+        self.ws.send(msg.to_json())
+
+    def send_sys_message(self, sys_msg: SystemMessage):
+        self.ws.send(sys_msg.to_json())
 
     def disconnect(self):
         try:

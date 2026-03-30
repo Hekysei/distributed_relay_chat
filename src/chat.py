@@ -46,7 +46,7 @@ class RemoteChat(Chat):
         msg.message_id = self.messages_sync_count
         self.messages_wait_for_sync[self.messages_sync_count] = msg
 
-        self.net_client.send(msg)
+        self.net_client.send_message(msg)
 
     def on_tsr(self, tsr: TimestampResponse):
         self.messages_wait_for_sync.pop(tsr.message_id).timestamp = tsr.timestamp

@@ -9,7 +9,6 @@ from src.package.package import Message, TimestampResponse, SystemMessage
 from src.package.package_factory import PackageFactory
 
 
-
 class ConnectionHandler:
     def __init__(self, ws: websockets.ServerConnection):
         self.ws = ws

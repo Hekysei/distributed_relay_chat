@@ -19,6 +19,13 @@ class APPClientChatBot(ChatBot):
             ("/connect", client.start_connection_thread, CONNECT_ARGS),
             ("/c", client.start_connection_thread, CONNECT_ARGS),
             ("/d", client.disconnect, {}),
+            (
+                "/name",
+                client.set_username,
+                {
+                    "name": "blank_name",
+                },
+            ),
         ]
         self.add_commands(CLIENT_COMMANDS)
         for greet in greetings:

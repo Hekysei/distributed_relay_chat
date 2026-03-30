@@ -33,10 +33,5 @@ class RelayBot(Bot):
                 join_channel,
                 name_kwargs,
             ),
-            (
-                "/name",
-                client_handler.set_username,
-                name_kwargs,
-            ),
         ]
         self.add_commands(CLIENT_COMMANDS)

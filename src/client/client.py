@@ -29,6 +29,7 @@ class Client:
         return False
 
     def run_net_client(self):
+        self.send_username()
         res: Message = self.net_client.run()
         self.on_msg(res)
 
@@ -68,8 +69,7 @@ class Client:
         self.on_message_callback()
 
     def on_sys_msg(self, sys_msg: SystemMessage):
-        if sys_msg.msg_type == "set_username":
-            self.username = sys_msg.body
+        pass
 
     ### ОТПРАВКА ТЕКСТА ###
     def send_user_text(self, chat: str, text: str):
@@ -81,3 +81,13 @@ class Client:
 
         self.chats[chat].send_message(msg)
         self.on_message_callback()
+
+    def set_username(self, name: str):
+        self.username = name
+        if self.net_client.ws.connected:
+            self.send_username()
+
+    def send_username(self):
+        self.net_client.send_sys_message(
+            SystemMessage(msg_type="set_username", body=self.username)
+        )
