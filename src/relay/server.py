@@ -6,16 +6,19 @@ from typing import Callable
 
 from src.package.package import Message, TimestampResponse, SystemMessage
 
+from src.package.package_factory import PackageFactory
+
+
 
 class ConnectionHandler:
     def __init__(self, ws: websockets.ServerConnection):
         self.ws = ws
+        self.package_factory: PackageFactory
 
-    async def recv_loop(self):
+    async def run(self):
         try:
             async for data in self.ws:
-                data: str | bytes
-                yield Message.from_json(data)
+                await self.package_factory.async_process_json(data)
         except Exception as e:
             print(e)
 
@@ -27,6 +30,7 @@ class ConnectionHandler:
 
     async def send_sys_message(self, sys_msg: SystemMessage):
         await self.ws.send(sys_msg.to_json())
+
 
 class Server:
     def __init__(self):
@@ -70,4 +74,3 @@ class Server:
             print(f"Closing {len(self.active_connections)} active connections...")
             close_tasks = [ws.close() for ws in self.active_connections]
             await asyncio.gather(*close_tasks, return_exceptions=True)
-

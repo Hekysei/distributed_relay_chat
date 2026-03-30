@@ -1,51 +1,18 @@
 from uuid import uuid4
 
-from src.bot import Bot
 from src.relay.server import ConnectionHandler
 from src.relay.dispatcher import Dispatcher
 from src.package.package import Message, TimestampResponse, SystemMessage
+from src.relay.relay_bot import RelayBot
+from src.package.package_factory import PackageFactory
 
-RELAY_CHAT_NAME = "r/relay"
-RELAY_BOT_NAME = "relay"
 
-
-class RelayBot(Bot):
-    def __init__(self, client_handler):
-        super().__init__(
-            RELAY_CHAT_NAME, RELAY_BOT_NAME, client_handler.send_message_to_client
-        )
-
-        async def create_channel(name):
-            await client_handler.dispatcher.create_channel(
-                name, client_handler.username, client_handler.send_message_to_client
-            )
-
-        async def join_channel(name):
-            await client_handler.dispatcher.subscribe(
-                name, client_handler.username, client_handler.send_message_to_client
-            )
-
-        name_kwargs = {
-            "name": "blank_name",
+class RelayPackageFactory(PackageFactory):
+    def __init__(self, connection_handler):
+        self._handlers = {
+            "message_request": connection_handler.on_msg,
+            "system_message": connection_handler.on_sys_msg,
         }
-        CLIENT_COMMANDS = [
-            (
-                "/create",
-                create_channel,
-                name_kwargs,
-            ),
-            (
-                "/join",
-                join_channel,
-                name_kwargs,
-            ),
-            (
-                "/name",
-                client_handler.set_username,
-                name_kwargs,
-            ),
-        ]
-        self.add_commands(CLIENT_COMMANDS)
 
 
 class ClientHandler:
@@ -60,6 +27,7 @@ class ClientHandler:
         self.dispatcher
 
         self.connection_handler = connection_handler
+        self.connection_handler.package_factory = RelayPackageFactory(self)
         self.send_message_to_client = connection_handler.send_message
         self.send_tsr_to_client = connection_handler.send_tsr
 
@@ -67,8 +35,7 @@ class ClientHandler:
 
     async def run(self):
         await self.on_start()
-        async for msg in self.connection_handler.recv_loop():
-            await self.on_msg(msg)
+        await self.connection_handler.run()
 
     async def on_start(self):
         await self.send_text_to_client("Welcome to relay")
@@ -80,15 +47,18 @@ class ClientHandler:
 
         await self.send_tsr_to_client(TimestampResponse.from_message(msg))
 
-        if msg.chat == RELAY_CHAT_NAME:
+        if msg.chat == self.bot.chat_name:
             await self.bot.async_on_text(msg.text)
         else:
             await self.dispatcher.send_message(msg, self.send_message_to_client)
 
+    def on_sys_msg(self, sys_msg: SystemMessage):
+        pass
+
     async def send_text_to_client(self, text: str):
         await self.send_message_to_client(
             Message(
-                chat=RELAY_CHAT_NAME, sender=RELAY_BOT_NAME, text=text
+                chat=self.bot.chat_name, sender=self.bot.bot_name, text=text
             ).set_timestamp_now()
         )
 

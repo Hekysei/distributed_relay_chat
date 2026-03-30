@@ -14,7 +14,7 @@ class PackageFactory(ABC):
     }
     _handlers: dict[str, Callable] = dict()
 
-    def process_json(self, json_str: str | bytes):
+    def get_handler_and_instance(self, json_str: str | bytes):
         data = json.loads(json_str)
         pkg_type = data.get("type")
 
@@ -22,6 +22,12 @@ class PackageFactory(ABC):
             raise ValueError(f"Неизвестный тип пакета: {pkg_type}")
 
         package_class: Type[Package] = self._classes[pkg_type]
-        handler = self._handlers[pkg_type]
-        instance = package_class.from_json(json_str)
-        return handler(instance)
+        return self._handlers[pkg_type], package_class.from_json(json_str)
+
+    def process_json(self, json_str: str | bytes):
+        handler, instance = self.get_handler_and_instance(json_str)
+        handler(instance)
+
+    async def async_process_json(self, json_str: str | bytes):
+        handler, instance = self.get_handler_and_instance(json_str)
+        await handler(instance)
