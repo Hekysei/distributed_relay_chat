@@ -31,7 +31,7 @@ class NetClient:
 
         return Message(chat="c/client", sender="net_client", text="breaker")
 
-    def send(self, msg: Message):
+    def send(self, msg: Message)->bool:
         try:
             if self.ws.connected:
                 self.ws.send(msg.to_json())

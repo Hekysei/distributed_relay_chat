@@ -43,11 +43,10 @@ class APPClient(Client):
     def __send_text_to_user(self, text: str):
         self.chat_bot.bot.send_text(text)
 
-    def send_user_text(self, chat: str, text: str) -> bool:
-        res = super().send_user_text(chat, text)
-        if not res:
-            self.__send_text_to_user("No server")
-        return res
+    def send_user_text(self, chat: str, text: str):
+        super().send_user_text(chat, text)
+        # if not res:
+        #     self.__send_text_to_user("No server")
 
     def start_connection_thread(self, ip: str, port: str) -> bool:
         res = super().start_connection_thread(ip, port)

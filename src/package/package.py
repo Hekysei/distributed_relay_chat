@@ -52,6 +52,7 @@ class Message(Package):
 
 @dataclass(kw_only=True)
 class TimestampResponse(Package):
+    chat: str
     message_id: int
     timestamp: datetime
     type: str = "timestamp_response"
@@ -60,7 +61,7 @@ class TimestampResponse(Package):
     def from_message(cls, msg: Message):
         if msg.timestamp is None or msg.message_id is None:
             raise ValueError("В сообщении нет времени или id")
-        return cls(message_id=msg.message_id, timestamp=msg.timestamp)
+        return cls(chat=msg.chat, message_id=msg.message_id, timestamp=msg.timestamp)
 
 
 @dataclass(kw_only=True)

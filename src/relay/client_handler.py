@@ -71,6 +71,7 @@ class ClientHandler:
 
     async def on_msg(self, msg: Message):
         msg.set_timestamp_now()
+        print(msg)
         await self.send_tsr_to_client(TimestampResponse.from_message(msg))
 
         if msg.chat[:2] in ("r/", "m/"):
