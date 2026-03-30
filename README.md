@@ -12,257 +12,327 @@
 <img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/f6aba8dc-c5b1-47d6-bfe7-25a1da112ffe" />
 
 
-### Не соотвествует реальности, но похоже (нейрослоп)
+### UML
 ```mermaid
 classDiagram
-    direction TB
+direction TB
 
-    %% ==================== Пакеты ====================
-    class Package {
-        <<abstract>>
-        +str type
-        +to_json() str
-        +from_json(json_str) Package$
-    }
+%% ==================== package ====================
+namespace src.package {
+  class Package {
+    <<abstract>>
+    +str type
+    +to_json() str
+    +from_json(json_str) Package$
+  }
 
-    class Message {
-        +str chat
-        +str sender
-        +str text
-        +int message_id
-        +datetime timestamp
-        +set_timestamp_now() Message
-    }
+  class Message {
+    +str chat
+    +str sender
+    +str text
+    +int|None message_id
+    +datetime|None timestamp
+    +str type = "message_request"
+    +set_timestamp_now() Message
+  }
 
-    class TimestampResponse {
-        +str chat
-        +int message_id
-        +datetime timestamp
-        +from_message(msg) TimestampResponse$
-    }
+  class TimestampResponse {
+    +str chat
+    +int message_id
+    +datetime timestamp
+    +str type = "timestamp_response"
+    +from_message(msg: Message) TimestampResponse$
+  }
 
-    class SystemMessage {
-        +str msg_type
-        +str body
-    }
+  class SystemMessage {
+    +str msg_type
+    +str body
+    +str type = "system_message"
+  }
 
-    Package <|-- Message
-    Package <|-- TimestampResponse
-    Package <|-- SystemMessage
+  class PackageFactory {
+    <<abstract>>
+    #dict~str, Type~Package~~ _classes$
+    #dict~str, Callable~ _handlers
+    +get_handler_and_instance(json_str) tuple
+    +process_json(json_str) void
+    +async_process_json(json_str) awaitable
+  }
+}
 
-    %% ==================== Фабрика пакетов ====================
-    class PackageFactory {
-        <<abstract>>
-        #dict _classes
-        #dict _handlers
-        +get_handler_and_instance(json_str) tuple
-        +process_json(json_str)
-        +async_process_json(json_str)
-    }
+Package <|-- Message
+Package <|-- TimestampResponse
+Package <|-- SystemMessage
 
-    class RelayPackageFactory {
-        +__init__(connection_handler)
-    }
+PackageFactory ..> Package : creates via from_json()
+PackageFactory ..> Message
+PackageFactory ..> TimestampResponse
+PackageFactory ..> SystemMessage
 
-    class APPClientPackageFactory {
-        +__init__(client)
-    }
+%% ==================== relay ====================
+namespace src.relay {
+  class Relay {
+    -Server server
+    -Dispatcher dispatcher
+    +run() awaitable
+    +start_handler(connection_handler: ConnectionHandler) awaitable
+  }
 
-    PackageFactory <|-- RelayPackageFactory
-    PackageFactory <|-- APPClientPackageFactory
+  class Server {
+    -set~ServerConnection~ active_connections
+    +Callable~ConnectionHandler~ on_connection_callback
+    +handler_factory(ws: ServerConnection) awaitable
+    +run() awaitable
+    +close_active_connections() awaitable
+  }
 
-    %% ==================== Сервер ====================
-    class Relay {
-        -Server server
-        -Dispatcher dispatcher
-        +run()
-        +start_handler(connection_handler)
-    }
+  class ConnectionHandler {
+    -ServerConnection ws
+    -PackageFactory package_factory
+    +run() awaitable
+    +send_message(msg: Message) awaitable
+    +send_tsr(tsr: TimestampResponse) awaitable
+    +send_sys_message(sys_msg: SystemMessage) awaitable
+  }
 
-    class Server {
-        -set~ServerConnection~ active_connections
-        +on_connection_callback
-        +handler_factory(ws)
-        +run()
-        +close_active_connections()
-    }
+  class Channel {
+    -dict~str, Callable~Message~~ members_funcs
+    +send_message(msg: Message, sender_func: Callable|None) awaitable
+    +subscribe(username: str, send_func: Callable~Message~) void
+    +unsubscribe(username: str) void
+  }
 
-    class ConnectionHandler {
-        -WebSocket ws
-        -PackageFactory package_factory
-        +run()
-        +send_message(msg)
-        +send_tsr(tsr)
-        +send_sys_message(sys_msg)
-    }
+  class Dispatcher {
+    -dict~str, Channel~ chanels
+    -dict~str, Callable~Message~~ users
+    +send_message(msg: Message, sender_func: Callable~Message~) awaitable
+    +subscribe(channel_name: str, username: str, send_func: Callable~Message~) awaitable
+    +unsubscribe(channel_name: str, username: str) awaitable
+    +create_channel(channel_name: str, username: str, send_func: Callable~Message~) awaitable
+    +call(msg: Message) awaitable
+  }
 
-    class ClientHandler {
-        -str username
-        -Dispatcher dispatcher
-        -ConnectionHandler connection_handler
-        -RelayBot bot
-        +run()
-        +on_msg(msg)
-        +on_sys_msg(sys_msg)
-        +send_text_to_client(text)
-        +set_username(name)
-    }
+  class RelayPackageFactory {
+    -dict~str, Callable~ _handlers
+    +__init__(connection_handler: ClientHandler)
+  }
 
-    class Dispatcher {
-        -dict channels
-        -dict users
-        +send_message(msg, sender_func)
-        +subscribe(channel, username, send_func)
-        +unsubscribe(channel, username)
-        +create_channel(channel, username, send_func)
-        +call(msg)
-    }
+  class ClientHandler {
+    +str username = "empty"
+    -Dispatcher dispatcher
+    -ConnectionHandler connection_handler
+    -RelayBot bot
+    +run() awaitable
+    +on_start() awaitable
+    +on_msg(msg: Message) awaitable
+    +on_sys_msg(sys_msg: SystemMessage) awaitable
+    +send_text_to_client(text: str) awaitable
+    +set_username(name: str) awaitable
+  }
 
-    class Channel {
-        -dict members_funcs
-        +send_message(msg, sender_func)
-        +subscribe(username, send_func)
-        +unsubscribe(username)
-    }
+  class RelayBot {
+    +str chat_name
+    +str bot_name
+    +__init__(client_handler: ClientHandler)
+  }
+}
 
-    Dispatcher *-- Channel
-    Relay *-- Server
-    Relay *-- Dispatcher
-    Server o-- ConnectionHandler : creates
-    ConnectionHandler o-- PackageFactory : uses
-    ClientHandler o-- Dispatcher : uses
-    ClientHandler o-- ConnectionHandler : wraps
-    ClientHandler o-- RelayBot : creates
+Relay *-- Server
+Relay *-- Dispatcher
+Server ..> ConnectionHandler : creates per connection
+ConnectionHandler o-- PackageFactory : uses for parsing inbound
+ClientHandler *-- RelayBot
+ClientHandler o-- Dispatcher : uses
+ClientHandler o-- ConnectionHandler : wraps
+Dispatcher *-- Channel
 
-    %% ==================== Клиент ====================
-    class APP {
-        -APPClient client
-        -TUI_Adapter tui_adapter
-        +run()
-    }
+RelayPackageFactory --|> PackageFactory
+RelayPackageFactory ..> ClientHandler : routes inbound packages to handler methods
+%% RelayPackageFactory maps package "type" -> ClientHandler.on_msg/on_sys_msg
 
-    class TUI_Adapter {
-        -curses.window stdscr
-        -Client client
-        -str input_buffer
-        -str active_chat
-        -int active_chat_idx
-        +run()
-        +iter()
-        +update_messages()
-        +update_input()
-        +update_bar()
-        +enter()
-        +step_chat()
-        +handle_chat_removed()
-    }
+ClientHandler ..> Message
+ClientHandler ..> TimestampResponse
+ClientHandler ..> SystemMessage
 
-    class APPClient {
-        -APPClientChatBot chat_bot
-        +__init__()
-        +send_user_text(chat, text)
-        +start_connection_thread(ip, port)
-        +connect_to_relay(ip, port)
-        +run_net_client()
-    }
+%% ==================== client ====================
+namespace src.client {
+  class NetClient {
+    -WebSocket ws
+    -PackageFactory package_factory
+    +connect(ip: str, port: str) bool
+    +run() Message
+    +send_message(msg: Message) void
+    +send_sys_message(sys_msg: SystemMessage) void
+    +disconnect() void
+  }
 
-    class Client {
-        #str username
-        #dict chats
-        #NetClient net_client
-        #Thread connection_thread
-        +on_message_callback
-        +on_chat_added_callback
-        +on_chat_removed_callback
-        +connect_to_relay(ip, port)
-        +run_net_client()
-        +start_connection_thread(ip, port)
-        +disconnect()
-        +add_chat(chat)
-        +create_chat(chat_name)
-        +remove_chat(chat_name)
-        +on_msg(msg)
-        +on_ts_response(tsr)
-        +on_sys_msg(sys_msg)
-        +send_user_text(chat, text)
-        +set_username(name)
-        +send_username()
-    }
+  class Client {
+    +str username = "blank_name"
+    +dict~str, Chat~ chats
+    +Callable on_message_callback
+    +Callable on_chat_added_callback
+    +Callable on_chat_removed_callback
+    -NetClient net_client
+    -Thread|None connection_thread
+    +connect_to_relay(ip: str, port: str) bool
+    +run_net_client() void
+    +start_connection_thread(ip: str, port: str) bool
+    +disconnect() void
+    +add_chat(chat: Chat) void
+    +create_chat(chat_name: str) void
+    +remove_chat(chat_name: str) void
+    +on_msg(msg: Message) void
+    +on_ts_response(tsr: TimestampResponse) void
+    +on_sys_msg(sys_msg: SystemMessage) void
+    +send_user_text(chat: str, text: str) void
+    +set_username(name: str) void
+    +send_username() void
+  }
+}
 
-    class NetClient {
-        -WebSocket ws
-        -PackageFactory package_factory
-        +connect(ip, port) bool
-        +run() Message
-        +send_message(msg)
-        +send_sys_message(sys_msg)
-        +disconnect()
-    }
+Client *-- NetClient
+NetClient o-- PackageFactory : uses for parsing inbound
+Client ..> Message
+Client ..> TimestampResponse
+Client ..> SystemMessage
 
-    Client <|-- APPClient
-    APPClient *-- APPClientChatBot
-    APP *-- APPClient
-    APP *-- TUI_Adapter
-    TUI_Adapter o-- Client : uses
-    Client *-- NetClient
-    NetClient o-- PackageFactory : uses
-    APPClientPackageFactory -- Client : used by
+%% ==================== chat & bot core ====================
+namespace src {
+  class Chat {
+    <<abstract>>
+    +str name
+    +list~Message~ messages
+    +add_message(msg: Message) void
+    +send_message(msg: Message) void
+  }
 
-    %% ==================== Чаты и боты ====================
-    class Chat {
-        <<abstract>>
-        +str name
-        +list messages
-        +add_message(msg)
-        +send_message(msg)
-    }
+  class RemoteChat {
+    -NetClient net_client
+    -dict~int, Message~ messages_wait_for_sync
+    -int messages_sync_count
+    +send_message(msg: Message) void
+    +on_tsr(tsr: TimestampResponse) void
+  }
 
-    class RemoteChat {
-        -NetClient net_client
-        -dict messages_wait_for_sync
-        -int messages_sync_count
-        +send_message(msg)
-        +on_tsr(tsr)
-    }
+  class ChatBot {
+    -Bot bot
+    +add_commands(commands: list) void
+    +send_message(msg: Message) void
+  }
 
-    class ChatBot {
-        -Bot bot
-        +add_commands(commands)
-        +send_message(msg)
-    }
+  class Bot {
+    +str chat_name
+    +str bot_name
+    -CommandRouter command_router
+    -Callable~Message~ send_message
+    +add_command(command: str, function: Callable, args: dict) void
+    +add_commands(commands: list) void
+    +send_text(text: str) void
+    +async_send_text(text: str) awaitable
+    +on_text(text: str) void
+    +async_on_text(text: str) awaitable
+  }
 
-    class Bot {
-        +str chat_name
-        +str bot_name
-        -CommandRouter command_router
-        -send_message Callable
-        +add_command(cmd, func, args)
-        +add_commands(commands)
-        +send_text(text)
-        +async_send_text(text)
-        +on_text(text)
-        +async_on_text(text)
-    }
+  class FuncArgsPair {
+    <<dataclass>>
+    +Callable function
+    +dict~str,str~ kwargs
+  }
 
-    class CommandRouter {
-        +add_command(cmd, func, args)
-        +route(text) bool
-        +async_route(text) bool
-    }
+  class CommandRouter {
+    -dict~str, FuncArgsPair~ commands_dict
+    +add_command(command: str, function: Callable, args: dict) void
+    +route(text: str) bool
+    +async_route(text: str) awaitable~bool~
+    +get_func_kwargs(text: str) tuple|None
+    +parse_args(words: list, args: dict) dict|None
+  }
+}
 
-    class RelayBot {
-        +__init__(client_handler)
-    }
+Chat <|-- RemoteChat
+Chat <|-- ChatBot
+ChatBot *-- Bot
+Bot *-- CommandRouter
+CommandRouter *-- FuncArgsPair
 
-    class APPClientChatBot {
-        +__init__(client)
-    }
+RemoteChat o-- src.client.NetClient
+Client o-- Chat : manages
+%% Client stores Chat instances in dict[str, Chat], including RemoteChat and ChatBot
 
-    Chat <|-- RemoteChat
-    Chat <|-- ChatBot
-    ChatBot *-- Bot
-    Bot *-- CommandRouter
-    RelayBot --|> Bot
-    APPClientChatBot --|> ChatBot
-    Client o-- Chat : manages
+RelayBot --|> Bot
+
+%% ==================== app (TUI) ====================
+namespace src.app {
+  class APPClientChatBot {
+    +__init__(client: Client)
+  }
+
+  class APPClientPackageFactory {
+    -dict~str, Callable~ _handlers
+    +__init__(client: Client)
+  }
+
+  class APPClient {
+    -APPClientChatBot chat_bot
+    +__init__() void
+    +send_user_text(chat: str, text: str) void
+    +start_connection_thread(ip: str, port: str) bool
+    +connect_to_relay(ip: str, port: str) bool
+    +run_net_client() void
+  }
+
+  class TUI_Adapter {
+    -curses.window stdscr
+    -Client client
+    -str input_buffer
+    -str active_chat
+    -int active_chat_idx
+    -curses.window msg_win
+    -curses.window inp_win
+    -curses.window bar_win
+    -bool is_stoped
+    +run() void
+    +iter() void
+    +backspace() void
+    +enter() void
+    +step_chat(step: int = 1) void
+    +handle_chat_removed() void
+    +fresah_draw() void
+    +create_window(h, w, y, x) curses.window
+    +resize_windows() void
+    +update_messages() void
+    +update_input() void
+    +update_bar() void
+  }
+}
+
+APPClientChatBot --|> ChatBot
+APPClientPackageFactory --|> PackageFactory
+APPClient --|> src.client.Client
+APPClient *-- APPClientChatBot
+APPClientPackageFactory ..> APPClient : routes inbound packages to Client handlers
+
+TUI_Adapter o-- src.client.Client : uses
+
+%% ==================== entrypoints ====================
+namespace root {
+  class APP {
+    -APPClient client
+    -TUI_Adapter tui_adapter
+    +run() void
+  }
+
+  class RelayMain {
+    -Server server
+    -Dispatcher dispatcher
+    +run() awaitable
+  }
+}
+
+APP *-- src.app.APPClient
+APP *-- src.app.TUI_Adapter
+
+RelayMain ..> src.relay.Relay : same role as class Relay in relay.py
+%% relay.py defines Relay; main.py defines APP. RelayMain is a conceptual entrypoint wrapper for documentation.
+
 ```
