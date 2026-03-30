@@ -3,7 +3,7 @@ from uuid import uuid4
 from src.bot import Bot
 from src.relay.server import ConnectionHandler
 from src.relay.dispatcher import Dispatcher
-from src.package.package import Message, TimestampResponse
+from src.package.package import Message, TimestampResponse, SystemMessage
 
 RELAY_CHAT_NAME = "r/relay"
 RELAY_BOT_NAME = "relay"
@@ -17,27 +17,32 @@ class RelayBot(Bot):
 
         async def create_channel(name):
             await client_handler.dispatcher.create_channel(
-                name, client_handler.uuid, client_handler.send_message_to_client
+                name, client_handler.username, client_handler.send_message_to_client
             )
 
         async def join_channel(name):
             await client_handler.dispatcher.subscribe(
-                name, client_handler.uuid, client_handler.send_message_to_client
+                name, client_handler.username, client_handler.send_message_to_client
             )
 
-        channel_name_kwargs = {
-            "name": "new_channel",
+        name_kwargs = {
+            "name": "blank_name",
         }
         CLIENT_COMMANDS = [
             (
                 "/create",
                 create_channel,
-                channel_name_kwargs,
+                name_kwargs,
             ),
             (
                 "/join",
                 join_channel,
-                channel_name_kwargs,
+                name_kwargs,
+            ),
+            (
+                "/name",
+                client_handler.set_username,
+                name_kwargs,
             ),
         ]
         self.add_commands(CLIENT_COMMANDS)
@@ -49,8 +54,7 @@ class ClientHandler:
         dispatcher: Dispatcher,
         connection_handler: ConnectionHandler,
     ):
-        uuid = str(uuid4())
-        self.uuid = uuid
+        self.username = "empty"
 
         self.dispatcher = dispatcher
         self.dispatcher
@@ -68,14 +72,14 @@ class ClientHandler:
 
     async def on_start(self):
         await self.send_text_to_client("Welcome to relay")
+        await self.set_username(str(uuid4()))
 
     async def on_msg(self, msg: Message):
         msg.set_timestamp_now()
-        print(msg)
+        msg.sender = self.username
+
         await self.send_tsr_to_client(TimestampResponse.from_message(msg))
 
-        if msg.chat[:2] in ("r/", "m/"):
-            msg.sender = self.uuid
         if msg.chat == RELAY_CHAT_NAME:
             await self.bot.async_on_text(msg.text)
         else:
@@ -87,3 +91,13 @@ class ClientHandler:
                 chat=RELAY_CHAT_NAME, sender=RELAY_BOT_NAME, text=text
             ).set_timestamp_now()
         )
+
+    async def send_username_to_client(self):
+        await self.connection_handler.send_sys_message(
+            SystemMessage(msg_type="set_username", body=self.username)
+        )
+
+    async def set_username(self, name: str):
+        self.username = name
+        await self.send_text_to_client(f"Your name is {self.username}")
+        await self.send_username_to_client()

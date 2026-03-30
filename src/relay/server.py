@@ -4,7 +4,7 @@ import signal
 
 from typing import Callable
 
-from src.package.package import Message, TimestampResponse
+from src.package.package import Message, TimestampResponse, SystemMessage
 
 
 class ConnectionHandler:
@@ -25,6 +25,8 @@ class ConnectionHandler:
     async def send_tsr(self, tsr: TimestampResponse):
         await self.ws.send(tsr.to_json())
 
+    async def send_sys_message(self, sys_msg: SystemMessage):
+        await self.ws.send(sys_msg.to_json())
 
 class Server:
     def __init__(self):
@@ -68,3 +70,4 @@ class Server:
             print(f"Closing {len(self.active_connections)} active connections...")
             close_tasks = [ws.close() for ws in self.active_connections]
             await asyncio.gather(*close_tasks, return_exceptions=True)
+

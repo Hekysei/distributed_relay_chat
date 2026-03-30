@@ -34,14 +34,23 @@ class Dispatcher:
     async def subscribe(
         self, channel_name: str, username: str, send_func: Callable[[Message]]
     ):
-        self.chanels[channel_name].subscribe(username, send_func)
-        await self.chanels[channel_name].send_message(
-            Message(
-                chat=channel_name,
-                sender="relay",
-                text=f"{username} has entered the chat.",
+        if channel_name in self.chanels:
+            self.chanels[channel_name].subscribe(username, send_func)
+            await self.chanels[channel_name].send_message(
+                Message(
+                    chat=channel_name,
+                    sender="relay",
+                    text=f"{username} has entered the chat.",
+                ).set_timestamp_now()
             )
-        )
+        else:
+            await send_func(
+                Message(
+                    chat="r/relay",
+                    sender="dispatcher",
+                    text="There is no room with this name",
+                ).set_timestamp_now()
+            )
 
     async def unsubscribe(self, channel_name: str, username: str):
         self.chanels[channel_name].unsubscribe(username)

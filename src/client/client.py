@@ -11,7 +11,7 @@ from src.chat import RemoteChat, Chat
 
 class Client:
     def __init__(self, package_factory: PackageFactory):
-        self.user_name = "blank_name"
+        self.username = "blank_name"
         self.chats: dict[str, Chat] = {}
 
         self.on_message_callback: Callable[[]] = lambda: None
@@ -68,13 +68,14 @@ class Client:
         self.on_message_callback()
 
     def on_sys_msg(self, sys_msg: SystemMessage):
-        pass
+        if sys_msg.msg_type == "set_username":
+            self.username = sys_msg.body
 
     ### ОТПРАВКА ТЕКСТА ###
     def send_user_text(self, chat: str, text: str):
         msg = Message(
             chat=chat,
-            sender=self.user_name,
+            sender=self.username,
             text=text,
         )
 
