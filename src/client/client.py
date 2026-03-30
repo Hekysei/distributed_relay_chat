@@ -8,6 +8,9 @@ from src.message import Message
 from src.chat import Chat
 
 
+from datetime import datetime
+
+
 class Client:
     def __init__(self):
         self.user_name = "blank_name"
@@ -66,7 +69,11 @@ class Client:
     ### ОТПРАВКА ТЕКСТА ###
     def send_user_text(self, chat: str, text: str) -> bool:
         msg = Message(
-            chat=chat, sender=self.user_name, text=text, message_id="1"
+            chat=chat,
+            sender=self.user_name,
+            text=text,
+            message_id="1",
+            timestamp=datetime.now(),
         )
         self.__add_message(msg)
         if msg.chat.startswith("c/"):

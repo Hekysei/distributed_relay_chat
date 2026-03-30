@@ -132,12 +132,14 @@ class TUI_Adapter:
 
                 i = height - 1
                 for msg in reversed(self.client.chats[self.active_chat].messages):
-                    row = f"{msg.sender}: {msg.text}"
+                    timestamp = "sync"
+                    if msg.timestamp:
+                        timestamp = msg.timestamp.strftime("%H:%M:%S")
+                    row = f"[{timestamp}] {msg.sender}: {msg.text}"
                     self.msg_win.insstr(i, 0, row[:width])
                     i -= 1
                     if i == -1:
                         break
-
                 self.msg_win.refresh()
 
     def update_input(self):

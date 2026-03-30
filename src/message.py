@@ -16,13 +16,24 @@ class Package(ABC):
     type: str
 
     def to_json(self) -> str:
-        return json.dumps(asdict(self))
+        return json.dumps(asdict(self), default=str)
 
     @classmethod
     def from_json(cls, json_str: str | bytes):
         data: dict = json.loads(json_str)
-        class_fields = {f.name for f in fields(cls)}
-        filtered_data = {k: v for k, v in data.items() if k in class_fields}
+        class_fields = {f.name: f for f in fields(cls)}
+
+        filtered_data = {}
+        for key, value in data.items():
+            if key in class_fields:
+                field_info = class_fields[key]
+
+                if field_info.type == (datetime | None) or field_info.type == datetime:
+                    if isinstance(value, str):
+                        value = datetime.fromisoformat(value)
+
+                filtered_data[key] = value
+
         return cls(**filtered_data)
 
 
@@ -32,14 +43,14 @@ class Message(Package):
     sender: str
     text: str
     message_id: str | None = None
-    timestamp: str | None = None
+    timestamp: datetime | None = None
     type: str = "message_request"
 
 
 @dataclass(kw_only=True)
 class TimestampResponse(Package):
     message_id: str
-    timestamp: str
+    timestamp: datetime
     type: str = "timestamp_response"
 
 
@@ -84,31 +95,3 @@ class PackageFactory:
         package_class, handler = cls._registry[pkg_type]
         instance = package_class.from_json(data)
         return handler(instance)
-
-
-# @dataclass(kw_only=True)
-# class Message(Package):
-#     chat: str
-#     text: str
-#     timestamp: datetime | None = None
-#     user_uuid: str | None = None
-#
-#     def set_time(self):
-#         self.timestamp = datetime.now()
-#
-#     def set_user_uuid(self, uuid: str):
-#         self.user_uuid = uuid
-#
-#
-# def json_to_message(json_str: str | bytes) -> Message:
-#     data = json.loads(json_str)
-#     if data["timestamp"]:
-#         data["timestamp"] = datetime.fromisoformat(data["timestamp"])
-#     return Message(**data)
-#
-#
-# def message_to_json(msg: Message) -> str:
-#     data = asdict(msg)
-#     if data["timestamp"]:
-#         data["timestamp"] = data["timestamp"].isoformat()
-#     return json.dumps(data)
