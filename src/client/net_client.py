@@ -1,11 +1,12 @@
 import websocket
-from typing import Generator
 
 from src.package.package import Message
 
+from src.package.package_factory import PackageFactory
 
 class NetClient:
-    def __init__(self):
+    def __init__(self, package_factory : PackageFactory):
+        self.package_factory = package_factory
         self.ws: websocket.WebSocket = websocket.WebSocket()
 
     def connect(self, ip: str, port: str) -> bool:
@@ -15,19 +16,20 @@ class NetClient:
         except ConnectionRefusedError, OSError:
             return False
 
-    def recv_loop(self) -> Generator[Message]:
+    def run(self) -> Message:
         while True:
             try:
                 data: str | bytes = self.ws.recv()
                 if not data:
                     # print("Connection closed")
                     break
-                yield Message.from_json(data)
+                self.package_factory.process_json(data)
             except websocket.WebSocketConnectionClosedException:
                 break
             except Exception as e:
-                yield Message(chat="e/error", sender="net_client", text=str(e))
-                break
+                return Message(chat="c/client", sender="net_client", text=str(e))
+
+        return Message(chat="c/client", sender="net_client", text="breaker")
 
     def send(self, msg: Message):
         try:

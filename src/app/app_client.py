@@ -1,5 +1,6 @@
 from src.client.client import Client
 from src.chat import ChatBot
+from src.package.package_factory import PackageFactory
 
 greetings = [
     "Welcome!",
@@ -8,7 +9,8 @@ greetings = [
     "/d - disconnect",
 ]
 
-class ClientChatBot(ChatBot):
+
+class APPClientChatBot(ChatBot):
     def __init__(self, client: Client):
         super().__init__("c/client", "client")
 
@@ -23,10 +25,19 @@ class ClientChatBot(ChatBot):
             self.bot.send_text(greet)
 
 
+class APPClientPackageFactory(PackageFactory):
+    def __init__(self, client: Client):
+        self._handlers = {
+            "message_request": client.on_msg,
+            "timestamp_response": client.on_ts_response,
+            "system_message": client.on_sys_msg,
+        }
+
+
 class APPClient(Client):
     def __init__(self):
-        super().__init__()
-        self.chat_bot = ClientChatBot(self)
+        super().__init__(APPClientPackageFactory(self))
+        self.chat_bot = APPClientChatBot(self)
         self.add_chat(self.chat_bot)
 
     def __send_text_to_user(self, text: str):
@@ -54,8 +65,8 @@ class APPClient(Client):
             self.__send_text_to_user("Connection refused")
         return res
 
-    def recv_loop(self):
-        super().recv_loop()
+    def run_net_client(self):
+        super().run_net_client()
         self.__send_text_to_user("Сonnection lost")
 
         for chat_name in list(self.chats.keys()):

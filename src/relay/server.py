@@ -4,7 +4,7 @@ import signal
 
 from typing import Callable
 
-from src.package.package import Message
+from src.package.package import Message, TimestampResponse
 
 
 class ConnectionHandler:
@@ -21,6 +21,9 @@ class ConnectionHandler:
 
     async def send_message(self, msg: Message):
         await self.ws.send(msg.to_json())
+
+    async def send_tsr(self, tsr: TimestampResponse):
+        await self.ws.send(tsr.to_json())
 
 
 class Server:

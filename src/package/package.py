@@ -41,16 +41,26 @@ class Message(Package):
     chat: str
     sender: str
     text: str
-    message_id: str | None = None
+    message_id: int | None = None
     timestamp: datetime | None = None
     type: str = "message_request"
+
+    def set_timestamp_now(self):
+        self.timestamp = datetime.now()
+        return self
 
 
 @dataclass(kw_only=True)
 class TimestampResponse(Package):
-    message_id: str
+    message_id: int
     timestamp: datetime
     type: str = "timestamp_response"
+
+    @classmethod
+    def from_message(cls, msg: Message):
+        if msg.timestamp is None or msg.message_id is None:
+            raise ValueError("В сообщении нет времени или id")
+        return cls(message_id=msg.message_id, timestamp=msg.timestamp)
 
 
 @dataclass(kw_only=True)
@@ -58,5 +68,3 @@ class SystemMessage(Package):
     msg_type: str
     body: str
     type: str = "system_message"
-
-

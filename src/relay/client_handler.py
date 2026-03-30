@@ -3,7 +3,7 @@ from uuid import uuid4
 from src.bot import Bot
 from src.relay.server import ConnectionHandler
 from src.relay.dispatcher import Dispatcher
-from src.package.package import Message
+from src.package.package import Message, TimestampResponse
 
 RELAY_CHAT_NAME = "r/relay"
 RELAY_BOT_NAME = "relay"
@@ -57,6 +57,7 @@ class ClientHandler:
 
         self.connection_handler = connection_handler
         self.send_message_to_client = connection_handler.send_message
+        self.send_tsr_to_client = connection_handler.send_tsr
 
         self.bot = RelayBot(self)
 
@@ -69,6 +70,9 @@ class ClientHandler:
         await self.send_text_to_client("Welcome to relay")
 
     async def on_msg(self, msg: Message):
+        msg.set_timestamp_now()
+        await self.send_tsr_to_client(TimestampResponse.from_message(msg))
+
         if msg.chat[:2] in ("r/", "m/"):
             msg.sender = self.uuid
         if msg.chat == RELAY_CHAT_NAME:
@@ -78,5 +82,7 @@ class ClientHandler:
 
     async def send_text_to_client(self, text: str):
         await self.send_message_to_client(
-            Message(chat=RELAY_CHAT_NAME, sender=RELAY_BOT_NAME, text=text)
+            Message(
+                chat=RELAY_CHAT_NAME, sender=RELAY_BOT_NAME, text=text
+            ).set_timestamp_now()
         )
