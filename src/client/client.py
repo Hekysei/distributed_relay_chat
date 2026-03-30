@@ -73,9 +73,10 @@ class Client:
             sender=self.user_name,
             text=text,
             message_id="1",
-            timestamp=datetime.now(),
         )
-        self.__add_message(msg)
         if msg.chat.startswith("c/"):
+            msg.timestamp = datetime.now()
+            self.__add_message(msg)
             return True
+        self.__add_message(msg)
         return self.net_client.send(msg)

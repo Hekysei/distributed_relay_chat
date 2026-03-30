@@ -3,6 +3,7 @@ from typing import Callable
 
 from src.command_router import CommandRouter
 from src.message import Message
+from datetime import datetime
 
 
 class Bot:
@@ -22,11 +23,23 @@ class Bot:
             self.add_command(*command)
 
     def send_text(self, text: str):
-        self.send_message(Message(chat=self.chat_name, sender=self.bot_name, text=text))
+        self.send_message(
+            Message(
+                chat=self.chat_name,
+                sender=self.bot_name,
+                text=text,
+                timestamp=datetime.now(),
+            )
+        )
 
     async def async_send_text(self, text: str):
         await self.send_message(
-            Message(chat=self.chat_name, sender=self.bot_name, text=text)
+            Message(
+                chat=self.chat_name,
+                sender=self.bot_name,
+                text=text,
+                timestamp=datetime.now(),
+            )
         )
 
     def on_text(self, text: str):
