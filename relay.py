@@ -3,7 +3,8 @@
 import asyncio
 
 from src.relay.server import Server, ConnectionHandler
-from src.relay.dispatcher import Dispatcher, ClientHandler
+from src.relay.dispatcher import Dispatcher
+from src.relay.client_handler import ClientHandler
 
 
 class Relay:
