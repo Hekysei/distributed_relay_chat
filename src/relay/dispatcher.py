@@ -1,9 +1,6 @@
-from uuid import uuid4
 from typing import Callable
 
-from src.bot import Bot
 from src.message import Message
-from src.relay.server import ConnectionHandler
 
 
 class Channel:
@@ -39,7 +36,11 @@ class Dispatcher:
     ):
         self.chanels[channel_name].subscribe(username, send_func)
         await self.chanels[channel_name].send_message(
-            Message(channel_name, "relay", f"{username} has entered the chat.")
+            Message(
+                chat=channel_name,
+                sender="relay",
+                text=f"{username} has entered the chat.",
+            )
         )
 
     async def unsubscribe(self, channel_name: str, username: str):

@@ -1,7 +1,7 @@
 import websocket
 from typing import Generator
 
-from src.message import Message, json_to_message, message_to_json
+from src.message import Message
 
 
 class NetClient:
@@ -22,17 +22,17 @@ class NetClient:
                 if not data:
                     # print("Connection closed")
                     break
-                yield json_to_message(data)
+                yield Message.from_json(data)
             except websocket.WebSocketConnectionClosedException:
                 break
             except Exception as e:
-                yield Message("e/error", "net_client", str(e))
+                yield Message(chat="e/error", sender="net_client", text=str(e))
                 break
 
     def send(self, msg: Message):
         try:
             if self.ws.connected:
-                self.ws.send(message_to_json(msg))
+                self.ws.send(msg.to_json())
                 return True
         except Exception as e:
             print(e)

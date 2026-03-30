@@ -4,13 +4,6 @@ from typing import Callable
 from src.command_router import CommandRouter
 from src.message import Message
 
-greetings = [
-    "Welcome!",
-    "Commands:",
-    "/c, /connect - connect to relay",
-    "/d - disconnect",
-]
-
 
 class Bot:
     def __init__(self, chat_name, bot_name, send_message):
@@ -20,8 +13,6 @@ class Bot:
         self.command_router = CommandRouter()
 
         self.send_message: Callable[[Message]] = send_message
-        for greet in greetings:
-            self.send_text(greet)
 
     def add_command(self, command: str, function: Callable[...], args: dict[str, str]):
         self.command_router.add_command(command, function, args)
@@ -31,10 +22,12 @@ class Bot:
             self.add_command(*command)
 
     def send_text(self, text: str):
-        self.send_message(Message(self.chat_name, self.bot_name, text))
+        self.send_message(Message(chat=self.chat_name, sender=self.bot_name, text=text))
 
     async def async_send_text(self, text: str):
-        await self.send_message(Message(self.chat_name, self.bot_name, text))
+        await self.send_message(
+            Message(chat=self.chat_name, sender=self.bot_name, text=text)
+        )
 
     def on_text(self, text: str):
         if not self.command_router.route(text):

@@ -70,7 +70,7 @@ class ClientHandler:
 
     async def on_msg(self, msg: Message):
         if msg.chat[:2] in ("r/", "m/"):
-            msg.set_user_uuid(self.uuid)
+            msg.sender = self.uuid
         if msg.chat == RELAY_CHAT_NAME:
             await self.bot.async_on_text(msg.text)
         else:
@@ -78,5 +78,5 @@ class ClientHandler:
 
     async def send_text_to_client(self, text: str):
         await self.send_message_to_client(
-            Message(RELAY_CHAT_NAME, RELAY_BOT_NAME, text)
+            Message(chat=RELAY_CHAT_NAME, sender=RELAY_BOT_NAME, text=text)
         )

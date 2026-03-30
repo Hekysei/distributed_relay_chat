@@ -65,7 +65,9 @@ class Client:
 
     ### ОТПРАВКА ТЕКСТА ###
     def send_user_text(self, chat: str, text: str) -> bool:
-        msg = Message(chat, self.user_name, text)
+        msg = Message(
+            chat=chat, sender=self.user_name, text=text, message_id="1"
+        )
         self.__add_message(msg)
         if msg.chat.startswith("c/"):
             return True

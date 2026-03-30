@@ -4,7 +4,7 @@ import signal
 
 from typing import Callable
 
-from src.message import Message, json_to_message, message_to_json
+from src.message import Message
 
 
 class ConnectionHandler:
@@ -15,12 +15,12 @@ class ConnectionHandler:
         try:
             async for data in self.ws:
                 data: str | bytes
-                yield json_to_message(data)
+                yield Message.from_json(data)
         except Exception as e:
             print(e)
 
     async def send_message(self, msg: Message):
-        await self.ws.send(message_to_json(msg))
+        await self.ws.send(msg.to_json())
 
 
 class Server:

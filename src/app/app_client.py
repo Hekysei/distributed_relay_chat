@@ -1,6 +1,13 @@
 from src.client.client import Client
 from src.chat import ChatBot
 
+greetings = [
+    "Welcome!",
+    "Commands:",
+    "/c, /connect - connect to relay",
+    "/d - disconnect",
+]
+
 class ClientChatBot(ChatBot):
     def __init__(self, client: Client):
         super().__init__("c/client", "client")
@@ -12,6 +19,8 @@ class ClientChatBot(ChatBot):
             ("/d", client.disconnect, {}),
         ]
         self.add_commands(CLIENT_COMMANDS)
+        for greet in greetings:
+            self.bot.send_text(greet)
 
 
 class APPClient(Client):
