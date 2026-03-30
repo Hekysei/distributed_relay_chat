@@ -1,6 +1,6 @@
 from typing import Callable
 
-from src.message import Message
+from src.package.package import Message
 
 
 class Channel:

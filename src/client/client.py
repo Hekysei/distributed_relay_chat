@@ -4,7 +4,7 @@ from threading import Thread
 
 
 from src.client.net_client import NetClient
-from src.message import Message
+from src.package.package import Message
 from src.chat import Chat
 
 

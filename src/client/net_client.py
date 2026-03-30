@@ -1,7 +1,7 @@
 import websocket
 from typing import Generator
 
-from src.message import Message
+from src.package.package import Message
 
 
 class NetClient:

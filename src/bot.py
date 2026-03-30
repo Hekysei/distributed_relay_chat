@@ -2,7 +2,7 @@ from typing import Callable
 
 
 from src.command_router import CommandRouter
-from src.message import Message
+from src.package.package import Message
 from datetime import datetime
 
 

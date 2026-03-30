@@ -4,7 +4,7 @@ import signal
 
 from typing import Callable
 
-from src.message import Message
+from src.package.package import Message
 
 
 class ConnectionHandler:
@@ -30,6 +30,7 @@ class Server:
         self.on_connection_callback: Callable[[ConnectionHandler]]
 
     async def handler_factory(self, ws: websockets.ServerConnection):
+        print("Client connected")
         self.active_connections.add(ws)
 
         connection_handler = ConnectionHandler(ws)

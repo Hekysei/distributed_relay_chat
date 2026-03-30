@@ -3,7 +3,7 @@ from uuid import uuid4
 from src.bot import Bot
 from src.relay.server import ConnectionHandler
 from src.relay.dispatcher import Dispatcher
-from src.message import Message
+from src.package.package import Message
 
 RELAY_CHAT_NAME = "r/relay"
 RELAY_BOT_NAME = "relay"

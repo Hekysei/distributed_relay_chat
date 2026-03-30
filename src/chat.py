@@ -1,4 +1,4 @@
-from src.message import Message
+from src.package.package import Message
 from src.bot import Bot
 
 
