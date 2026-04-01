@@ -1,0 +1,188 @@
+@startuml
+!pragma layout smetana
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+title distributed_relay_chat — UML диаграмма классов (по коду)
+
+package "Протокол (src.package)" as pkg {
+  abstract class Package {
+    +type: str
+    +to_json(): str
+    {static} from_json(json_str): Package
+  }
+  class Message {
+    +chat, sender, text: str
+    +message_id: int?
+    +timestamp: datetime?
+    +set_timestamp_now(): Message
+  }
+  class TimestampResponse {
+    {static} from_message(msg: Message): TimestampResponse
+  }
+  class SystemMessage {
+    +msg_type, body: str
+  }
+  Package <|-- Message
+  Package <|-- TimestampResponse
+  Package <|-- SystemMessage
+
+  abstract class PackageFactory {
+    {static} _classes: dict
+    _handlers: dict
+    +get_handler_and_instance(json_str)
+    +process_json(json_str): void
+    +async_process_json(json_str): awaitable
+  }
+  class RelayPackageFactory
+  class APPClientPackageFactory
+  PackageFactory <|-- RelayPackageFactory
+  PackageFactory <|-- APPClientPackageFactory
+}
+
+package "Релей (src.relay)" as relay {
+  class Relay {
+    -server: Server
+    -dispatcher: Dispatcher
+    +run(): awaitable
+    +start_handler(connection_handler): awaitable
+  }
+  class Server {
+    -active_connections: set
+    +on_connection_callback
+    +handler_factory(ws): awaitable
+    +run(): awaitable
+  }
+  class ConnectionHandler {
+    -ws
+    +package_factory: PackageFactory
+    +run(): awaitable
+    +send_message(msg): awaitable
+    +send_tsr(tsr): awaitable
+  }
+  class Dispatcher {
+    -chanels: dict
+    -users: dict
+    +send_message(msg, sender_func): awaitable
+    +subscribe(...): awaitable
+    +create_channel(...): awaitable
+    +call(msg): awaitable
+  }
+  class Channel {
+    -members_funcs: dict
+    +send_message(msg, sender_func): awaitable
+    +subscribe(username, send_func): void
+  }
+  class ClientHandler {
+    +username: str
+    +on_msg(msg): awaitable
+    +on_sys_msg(sys_msg): awaitable
+    +send_text_to_client(text): awaitable
+  }
+  Relay *-- Server
+  Relay *-- Dispatcher
+  Server ..> ConnectionHandler : создаёт
+  ConnectionHandler o-- PackageFactory
+  Dispatcher *-- Channel
+  ClientHandler --> Dispatcher
+  ClientHandler --> ConnectionHandler
+}
+
+package "Клиент и сеть (src.client)" as cl {
+  class NetClient {
+    -ws: WebSocket
+    +package_factory: PackageFactory
+    +connect(ip, port): bool
+    +run(): Message
+    +send_message(msg): void
+  }
+  class Client {
+    +username: str
+    +chats: dict
+    +on_message_callback
+    +net_client: NetClient
+    +on_msg(msg): void
+    +on_ts_response(tsr): void
+    +send_user_text(chat, text): void
+  }
+  class APPClient
+  Client *-- NetClient
+  Client <|-- APPClient
+  NetClient o-- PackageFactory
+}
+
+package "Чаты и бот (src)" as chatbot {
+  abstract class Chat {
+    +name: str
+    +messages: list
+    +add_message(msg): void
+    +send_message(msg): void
+  }
+  class RemoteChat {
+    -net_client: NetClient
+    -messages_wait_for_sync: dict
+    +on_tsr(tsr): void
+  }
+  class ChatBot {
+    -bot: Bot
+    +add_commands(commands): void
+  }
+  class Bot {
+    -command_router: CommandRouter
+    +send_message: Callable
+    +on_text(text): void
+    +async_on_text(text): awaitable
+  }
+  class CommandRouter {
+    -commands_dict: dict
+    +route(text): bool
+    +async_route(text): awaitable
+  }
+  class FuncArgsPair {
+    +function: Callable
+    +kwargs: dict
+  }
+  class RelayBot
+  class APPClientChatBot
+  Chat <|-- RemoteChat
+  Chat <|-- ChatBot
+  ChatBot *-- Bot
+  Bot *-- CommandRouter
+  CommandRouter *-- FuncArgsPair
+  Bot <|-- RelayBot
+  ChatBot <|-- APPClientChatBot
+}
+
+package "TUI (src.app)" as app {
+  class TUI_Adapter {
+    -client: Client
+    -input_buffer: str
+    -active_chat: str
+    +run(): void
+  }
+  class APP {
+    -client: APPClient
+    -tui_adapter: TUI_Adapter
+    +run(): void
+  }
+  APP *-- APPClient
+  APP *-- TUI_Adapter
+}
+
+RelayPackageFactory ..> ClientHandler : маршрутизация входящих JSON
+APPClientPackageFactory ..> Client : маршрутизация входящих JSON
+ClientHandler *-- RelayBot
+RemoteChat o-- NetClient
+APPClient *-- APPClientChatBot
+TUI_Adapter o-- Client
+
+note bottom of Dispatcher
+  Каналы и подписчики:
+  pub/sub по имени чата
+end note
+
+note bottom of PackageFactory
+  Template Method + разбор JSON:
+  тип пакета → класс + обработчик
+end note
+
+@enduml
