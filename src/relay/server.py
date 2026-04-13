@@ -4,7 +4,6 @@ import signal
 
 from typing import Callable
 
-
 from src.connection_handler import ConnectionHandler
 
 

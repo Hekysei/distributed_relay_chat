@@ -17,7 +17,6 @@ class Relay:
     async def run(self):
         await self.server.run()
 
-    # Factory
     async def start_handler(self, connection_handler: ConnectionHandler):
         client_handler = ClientHandler(self.dispatcher, connection_handler)
         await client_handler.run()
