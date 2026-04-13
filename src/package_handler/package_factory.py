@@ -17,7 +17,7 @@ class PackageFactory:
     def __init__(self, handler: PackageHandler):
         self._handlers: dict[str, Callable] = {
             "message_request": handler.on_msg,
-            "timestamp_response": handler.on_ts_response,
+            "timestamp_response": handler.on_tsr,
             "system_message": handler.on_sys_msg,
         }
 

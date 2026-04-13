@@ -28,7 +28,7 @@ class ChatBot(Chat):
     async def send_message(self, msg: Message):
         msg.set_timestamp_now()
         await super().send_message(msg)
-        self.bot.on_text(msg.text)
+        await self.bot.async_on_text(msg.text)
 
 
 class RemoteChat(Chat):

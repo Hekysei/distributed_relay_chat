@@ -7,7 +7,7 @@ class PackageHandler:
     async def on_msg(self, msg: Message):
         pass
 
-    async def on_ts_response(self, tsr: TimestampResponse):
+    async def on_tsr(self, tsr: TimestampResponse):
         pass
 
     async def on_sys_msg(self, sys_msg: SystemMessage):
