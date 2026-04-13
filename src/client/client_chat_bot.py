@@ -1,4 +1,7 @@
+import asyncio
+
 from src.chat import ChatBot
+from src.client.client import Client
 
 greetings = [
     "Welcome!",
@@ -9,7 +12,7 @@ greetings = [
 
 
 class ClientChatBot(ChatBot):
-    def __init__(self, client):
+    def __init__(self, client: Client):
         super().__init__("c/client", "client")
 
         CONNECT_ARGS = {"ip": "localhost", "port": "1409"}
@@ -26,5 +29,10 @@ class ClientChatBot(ChatBot):
             ),
         ]
         self.add_commands(CLIENT_COMMANDS)
+
+        asyncio.run(self.greet())
+    
+    async def greet(self):
         for greet in greetings:
-            self.bot.send_text(greet)
+            await self.bot.async_send_text(greet)
+

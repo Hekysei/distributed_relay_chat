@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import asyncio
 
 from src.app.tui_adapter import TUI_Adapter
 from src.app.app_client import APPClient
@@ -15,7 +16,7 @@ class APP:
 
     def run(self):
         self.tui_adapter.run()
-        # self.client.disconnect()
+        asyncio.run(self.client.disconnect())
 
 
 if __name__ == "__main__":

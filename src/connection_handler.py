@@ -15,27 +15,24 @@ class ConnectionHandler:
         self.ws: websockets.ClientConnection | websockets.ServerConnection | None = ws
         self.package_factory: PackageFactory
 
-    async def connect(self, ip: str, port: str):
+    async def connect(self, ip: str, port: str) -> str:
         try:
             self.ws = await websockets.connect(f"ws://{ip}:{port}")
-            # return True
-        except (ConnectionRefusedError, OSError):
-            return Message(chat="c/client", sender="net_client", text="No connection")
-            # return False
-        if not self.ws:
-            return Message(chat="c/client", sender="net_client", text="No connection")
+            if not self.ws:
+                return "no ws"
+            return "ok"
+        except Exception as e:
+            return str(e)
 
-    async def run(self) -> Message:
+    async def run(self) -> str:
         if self.ws:
             try:
                 async for data in self.ws:
                     await self.package_factory.process_json(data)
-            except ConnectionClosed:
-                pass
+                return "end"
             except Exception as e:
-                return Message(chat="c/client", sender="net_client", text=str(e))
-
-        return Message(chat="c/client", sender="net_client", text="breaker")
+                return str(e)
+        return "no ws"
 
     async def send_message(self, msg: Message):
         if self.ws:
@@ -54,4 +51,4 @@ class ConnectionHandler:
             await self.ws.close()
 
     def is_connected(self):
-        return self.ws is not None and self.ws.state == State.OPEN
+        return (self.ws is not None) and (self.ws.state == State.OPEN)

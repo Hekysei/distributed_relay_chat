@@ -3,13 +3,13 @@ from threading import Lock
 
 from typing import Union
 
-from src.client.client import Client
+from src.client.user_client import UserClient
 
 mutex = Lock()
 
 
 class TUI_Adapter:
-    def __init__(self, client: Client):
+    def __init__(self, client: UserClient):
         self.stdscr: curses.window
         self.client = client
 
