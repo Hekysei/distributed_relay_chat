@@ -10,11 +10,11 @@ class Chat(ABC):
         self.name = name
         self.messages: list[Message] = []
 
-    def add_message(self, msg: Message):
+    async def add_message(self, msg: Message):
         self.messages.append(msg)
 
     async def send_message(self, msg: Message):
-        self.add_message(msg)
+        await self.add_message(msg)
 
 
 class ChatBot(Chat):
