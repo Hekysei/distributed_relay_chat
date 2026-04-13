@@ -2,6 +2,7 @@ from typing import Callable, cast
 
 from threading import Thread
 
+import asyncio
 
 from src.client.net_client import NetClient
 from src.package.package import Message, TimestampResponse, SystemMessage
@@ -23,27 +24,22 @@ class Client:
         self.connection_thread: Thread | None = None
 
     ### РАБОТА ПОДКЛЮЧЕНИЯ ###
-    def connect_to_relay(self, ip: str, port: str) -> bool:
-        if self.net_client.connect(ip, port):
-            return True
-        return False
-
-    def run_net_client(self):
-        self.send_username()
-        res: Message = self.net_client.run()
-        self.on_msg(res)
-
     def start_connection_thread(self, ip: str, port: str) -> bool:
-        if self.net_client.ws.connected:
+        if self.net_client.is_connected():
             return False
         else:
-            if self.connect_to_relay(ip, port):
-                self.connection_thread = Thread(target=self.run_net_client)
-                self.connection_thread.start()
+            self.connection_thread = Thread(
+                target=lambda: asyncio.run(self.run_net(ip, port))
+            )
+            self.connection_thread.start()
             return True
 
+    async def run_net(self, ip: str, port: str):
+        self.loop = asyncio.get_running_loop()
+        await self.net_client.run(ip, port)
+
     def disconnect(self):
-        self.net_client.disconnect()
+        asyncio.run_coroutine_threadsafe(self.net_client.disconnect(), self.loop)
 
     ### РАБОТА С ЧАТАМИ ###
     def add_chat(self, chat: Chat):
@@ -58,17 +54,17 @@ class Client:
         self.on_chat_removed_callback()
 
     ### HANDLERS ###
-    def on_msg(self, msg: Message):
+    async def on_msg(self, msg: Message):
         if msg.chat not in self.chats:
             self.create_chat(msg.chat)
         self.chats[msg.chat].add_message(msg)
         self.on_message_callback()
 
-    def on_ts_response(self, tsr: TimestampResponse):
+    async def on_ts_response(self, tsr: TimestampResponse):
         cast(RemoteChat, self.chats[tsr.chat]).on_tsr(tsr)
         self.on_message_callback()
 
-    def on_sys_msg(self, sys_msg: SystemMessage):
+    async def on_sys_msg(self, sys_msg: SystemMessage):
         pass
 
     ### ОТПРАВКА ТЕКСТА ###
@@ -78,16 +74,16 @@ class Client:
             sender=self.username,
             text=text,
         )
-
-        self.chats[chat].send_message(msg)
+ 
+        asyncio.run(self.chats[chat].send_message(msg))
         self.on_message_callback()
 
-    def set_username(self, name: str):
+    async def set_username(self, name: str):
         self.username = name
-        if self.net_client.ws.connected:
-            self.send_username()
+        if self.net_client.is_connected():
+            await self.send_username()
 
-    def send_username(self):
-        self.net_client.send_sys_message(
+    async def send_username(self):
+        await self.net_client.send_sys_message(
             SystemMessage(msg_type="set_username", body=self.username)
         )

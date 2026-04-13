@@ -17,7 +17,7 @@ class ConnectionHandler:
     async def run(self):
         try:
             async for data in self.ws:
-                await self.package_factory.async_process_json(data)
+                await self.package_factory.process_json(data)
         except Exception as e:
             print(e)
 

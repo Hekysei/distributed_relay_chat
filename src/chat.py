@@ -13,7 +13,7 @@ class Chat(ABC):
     def add_message(self, msg: Message):
         self.messages.append(msg)
 
-    def send_message(self, msg: Message):
+    async def send_message(self, msg: Message):
         self.add_message(msg)
 
 
@@ -25,9 +25,9 @@ class ChatBot(Chat):
     def add_commands(self, commands: list):
         self.bot.add_commands(commands)
 
-    def send_message(self, msg: Message):
+    async def send_message(self, msg: Message):
         msg.set_timestamp_now()
-        super().send_message(msg)
+        await super().send_message(msg)
         self.bot.on_text(msg.text)
 
 
@@ -39,14 +39,14 @@ class RemoteChat(Chat):
         self.messages_wait_for_sync: dict[int, Message] = dict()
         self.messages_sync_count = 0
 
-    def send_message(self, msg: Message):
-        super().send_message(msg)
+    async def send_message(self, msg: Message):
+        await super().send_message(msg)
 
         self.messages_sync_count += 1
         msg.message_id = self.messages_sync_count
         self.messages_wait_for_sync[self.messages_sync_count] = msg
 
-        self.net_client.send_message(msg)
+        await self.net_client.send_message(msg)
 
     def on_tsr(self, tsr: TimestampResponse):
         self.messages_wait_for_sync.pop(tsr.message_id).timestamp = tsr.timestamp
