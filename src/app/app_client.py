@@ -40,7 +40,6 @@ class APPClient(UserClient):
         await super().on_tsr(*args, **kwargs)
         self.on_message_callback()
 
-
     ### ОПОВЕЩЕНИЕ ПОЛЬЗОВАТЕЛЯ ###
     async def start_connection_thread(self, ip: str, port: str) -> bool:
         res = await super().start_connection_thread(ip, port)
@@ -52,7 +51,7 @@ class APPClient(UserClient):
 
     async def connect(self, *args, **kwargs) -> str:
         res = await super().connect(*args, **kwargs)
-        if res:
+        if res == "ok":
             await self.send_text_to_user("Connected")
         else:
             await self.send_text_to_user("Connection refused")

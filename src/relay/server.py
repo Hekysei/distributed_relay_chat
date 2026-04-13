@@ -11,7 +11,7 @@ class Server:
     def __init__(self):
         self.active_connections: set[websockets.ServerConnection] = set()
 
-        self.on_connection_callback: Callable[[ConnectionHandler]]
+        self.on_connection_callback: Callable[[ConnectionHandler]] = lambda _: None
 
     async def handler_factory(self, ws: websockets.ServerConnection):
         print("Client connected")
@@ -19,11 +19,12 @@ class Server:
 
         connection_handler = ConnectionHandler(ws)
 
-        await self.on_connection_callback(connection_handler)
-
-        await ws.close()
-        self.active_connections.remove(ws)
-        print("Client disconnected")
+        try:
+            await self.on_connection_callback(connection_handler)
+        finally:
+            await ws.close()
+            self.active_connections.remove(ws)
+            print("Client disconnected")
 
     async def run(self):
         async with websockets.serve(self.handler_factory, "localhost", 1409):

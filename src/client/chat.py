@@ -49,4 +49,6 @@ class RemoteChat(Chat):
         await self.net_client.send_message(msg)
 
     def on_tsr(self, tsr: TimestampResponse):
-        self.messages_wait_for_sync.pop(tsr.message_id).timestamp = tsr.timestamp
+        msg = self.messages_wait_for_sync.pop(tsr.message_id, None)
+        if msg:
+            msg.timestamp = tsr.timestamp

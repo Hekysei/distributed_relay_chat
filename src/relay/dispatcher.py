@@ -25,18 +25,18 @@ class Channel:
 # Pub/Sub
 class Dispatcher:
     def __init__(self):
-        self.chanels: dict[str, Channel] = dict()
+        self.channels: dict[str, Channel] = dict()
         self.users: dict[str, Callable[[Message]]] = dict()
 
     async def send_message(self, msg: Message, sender_func: Callable[[Message]]):
-        await self.chanels[msg.chat].send_message(msg, sender_func)
+        await self.channels[msg.chat].send_message(msg, sender_func)
 
     async def subscribe(
         self, channel_name: str, username: str, send_func: Callable[[Message]]
     ):
-        if channel_name in self.chanels:
-            self.chanels[channel_name].subscribe(username, send_func)
-            await self.chanels[channel_name].send_message(
+        if channel_name in self.channels:
+            self.channels[channel_name].subscribe(username, send_func)
+            await self.channels[channel_name].send_message(
                 Message(
                     chat=channel_name,
                     sender="relay",
@@ -53,12 +53,12 @@ class Dispatcher:
             )
 
     async def unsubscribe(self, channel_name: str, username: str):
-        self.chanels[channel_name].unsubscribe(username)
+        self.channels[channel_name].unsubscribe(username)
 
     async def create_channel(
         self, channel_name: str, username: str, send_func: Callable[[Message]]
     ):
-        self.chanels[channel_name] = Channel()
+        self.channels[channel_name] = Channel()
         await self.subscribe(channel_name, username, send_func)
 
     async def call(self, msg: Message):
