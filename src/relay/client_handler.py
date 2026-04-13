@@ -16,8 +16,6 @@ class ClientHandler(ActivePackageHandler):
         self.dispatcher = dispatcher
         self.dispatcher
 
-        self.send_message_to_client = connection_handler.send_message
-        self.send_tsr_to_client = connection_handler.send_tsr
 
         self.bot = RelayBot(self)
 
@@ -32,19 +30,19 @@ class ClientHandler(ActivePackageHandler):
         msg.set_timestamp_now()
         msg.sender = self.username
 
-        await self.send_tsr_to_client(TimestampResponse.from_message(msg))
+        await self.send_tsr(TimestampResponse.from_message(msg))
 
         if msg.chat == self.bot.chat_name:
             await self.bot.async_on_text(msg.text)
         else:
-            await self.dispatcher.send_message(msg, self.send_message_to_client)
+            await self.dispatcher.send_message(msg, self.send_message)
 
     async def on_sys_msg(self, sys_msg: SystemMessage):
         if sys_msg.msg_type == "set_username":
             await self.set_username(sys_msg.body)
 
     async def send_text_to_client(self, text: str):
-        await self.send_message_to_client(
+        await self.send_message(
             Message(
                 chat=self.bot.chat_name, sender=self.bot.bot_name, text=text
             ).set_timestamp_now()
