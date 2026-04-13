@@ -31,8 +31,7 @@ class ClientChatBot(ChatBot):
         self.add_commands(CLIENT_COMMANDS)
 
         asyncio.run(self.greet())
-    
+
     async def greet(self):
         for greet in greetings:
             await self.bot.async_send_text(greet)
-

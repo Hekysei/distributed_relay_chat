@@ -3,11 +3,10 @@ from src.bot.bot import Bot
 RELAY_CHAT_NAME = "r/relay"
 RELAY_BOT_NAME = "relay"
 
+
 class RelayBot(Bot):
     def __init__(self, client_handler):
-        super().__init__(
-            RELAY_CHAT_NAME, RELAY_BOT_NAME, client_handler.send_message
-        )
+        super().__init__(RELAY_CHAT_NAME, RELAY_BOT_NAME, client_handler.send_message)
 
         async def create_channel(name):
             await client_handler.dispatcher.create_channel(

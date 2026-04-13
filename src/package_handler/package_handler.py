@@ -1,5 +1,6 @@
 from src.package.package import Message, TimestampResponse, SystemMessage
 
+
 class PackageHandler:
     def __init__(self):
         pass
@@ -12,4 +13,3 @@ class PackageHandler:
 
     async def on_sys_msg(self, sys_msg: SystemMessage):
         pass
-

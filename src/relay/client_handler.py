@@ -16,7 +16,6 @@ class ClientHandler(ActivePackageHandler):
         self.dispatcher = dispatcher
         self.dispatcher
 
-
         self.bot = RelayBot(self)
 
     async def run(self):
@@ -25,7 +24,7 @@ class ClientHandler(ActivePackageHandler):
 
     async def on_start(self):
         await self.send_text_to_client("Welcome to relay")
-    
+
     ### HANDLERS ###
     async def on_msg(self, msg: Message):
         msg.set_timestamp_now()
