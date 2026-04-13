@@ -1,32 +1,21 @@
-from src.relay.server import ConnectionHandler
+from src.connection_handler import ConnectionHandler
 from src.relay.dispatcher import Dispatcher
 from src.package.package import Message, TimestampResponse, SystemMessage
 from src.relay.relay_bot import RelayBot
-from src.package.package_factory import PackageFactory
-from src.package.package_handler import NamedPackageHandler
+from src.package_handler.active_package_handler import ActivePackageHandler
 
 
-class RelayPackageFactory(PackageFactory):
-    def __init__(self, connection_handler):
-        self._handlers = {
-            "message_request": connection_handler.on_msg,
-            "system_message": connection_handler.on_sys_msg,
-        }
-
-
-class ClientHandler(NamedPackageHandler):
+class ClientHandler(ActivePackageHandler):
     def __init__(
         self,
         dispatcher: Dispatcher,
         connection_handler: ConnectionHandler,
     ):
-        super().__init__()
+        super().__init__(connection_handler)
 
         self.dispatcher = dispatcher
         self.dispatcher
 
-        self.connection_handler = connection_handler
-        self.connection_handler.package_factory = RelayPackageFactory(self)
         self.send_message_to_client = connection_handler.send_message
         self.send_tsr_to_client = connection_handler.send_tsr
 
