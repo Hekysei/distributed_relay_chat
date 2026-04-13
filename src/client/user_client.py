@@ -1,6 +1,6 @@
 import asyncio
 
-from src.chat import RemoteChat, Chat
+from src.client.chat import RemoteChat, Chat
 from src.client.client import Client
 from src.client.client_chat_bot import ClientChatBot
 

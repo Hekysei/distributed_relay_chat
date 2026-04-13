@@ -1,7 +1,7 @@
 from abc import ABC
 
 from src.package.package import Message, TimestampResponse
-from src.bot import Bot
+from src.bot.bot import Bot
 from src.connection_handler import ConnectionHandler
 
 

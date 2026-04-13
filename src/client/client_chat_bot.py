@@ -1,6 +1,6 @@
 import asyncio
 
-from src.chat import ChatBot
+from src.client.chat import ChatBot
 from src.client.client import Client
 
 greetings = [
