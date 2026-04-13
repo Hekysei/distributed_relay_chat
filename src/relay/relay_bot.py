@@ -1,4 +1,4 @@
-from src.bot import Bot
+from src.bot.bot import Bot
 
 RELAY_CHAT_NAME = "r/relay"
 RELAY_BOT_NAME = "relay"
