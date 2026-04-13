@@ -3,6 +3,7 @@ from src.relay.dispatcher import Dispatcher
 from src.package.package import Message, TimestampResponse, SystemMessage
 from src.relay.relay_bot import RelayBot
 from src.package.package_factory import PackageFactory
+from src.package.package_handler import NamedPackageHandler
 
 
 class RelayPackageFactory(PackageFactory):
@@ -13,13 +14,13 @@ class RelayPackageFactory(PackageFactory):
         }
 
 
-class ClientHandler:
+class ClientHandler(NamedPackageHandler):
     def __init__(
         self,
         dispatcher: Dispatcher,
         connection_handler: ConnectionHandler,
     ):
-        self.username = "empty"
+        super().__init__()
 
         self.dispatcher = dispatcher
         self.dispatcher

@@ -6,13 +6,14 @@ import asyncio
 
 from src.client.net_client import NetClient
 from src.package.package import Message, TimestampResponse, SystemMessage
+from src.package.package_handler import NamedPackageHandler
 from src.package.package_factory import PackageFactory
 from src.chat import RemoteChat, Chat
 
 
-class Client:
+class Client(NamedPackageHandler):
     def __init__(self, package_factory: PackageFactory):
-        self.username = "blank_name"
+        super().__init__()
         self.chats: dict[str, Chat] = {}
 
         self.on_message_callback: Callable[[]] = lambda: None
