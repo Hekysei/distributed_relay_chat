@@ -11,6 +11,15 @@ class APPClient(UserClient):
 
         super().__init__()
 
+    ### TODO сделать обработку чатов после отключения
+    async def run_net(self, ip, port):
+        await super().run_net(ip, port)
+
+        for chat_name in list(self.chats.keys()):
+            if chat_name != self.chat_bot.name:
+                self.remove_chat(chat_name)
+
+    ### CALLBACKS ###
     def add_chat(self, *args, **kwargs):
         super().add_chat(*args, **kwargs)
         self.on_chat_added_callback()
@@ -31,7 +40,8 @@ class APPClient(UserClient):
         await super().on_tsr(*args, **kwargs)
         self.on_message_callback()
 
-    ### ОПОВЕЩЕНИЕ ПОЛЬЗОВАТЕЛЯ
+
+    ### ОПОВЕЩЕНИЕ ПОЛЬЗОВАТЕЛЯ ###
     async def start_connection_thread(self, ip: str, port: str) -> bool:
         res = await super().start_connection_thread(ip, port)
         if not res:
@@ -55,10 +65,3 @@ class APPClient(UserClient):
         else:
             await self.send_text_to_user("Already disconnected")
         return res
-
-    async def run_net(self, ip, port):
-        await super().run_net(ip, port)
-
-        for chat_name in list(self.chats.keys()):
-            if chat_name != self.chat_bot.name:
-                self.remove_chat(chat_name)
