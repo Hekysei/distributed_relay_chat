@@ -1,6 +1,5 @@
 from src.client.client import Client
 from src.chat import ChatBot
-from src.package.package_factory import PackageFactory
 
 greetings = [
     "Welcome!",
@@ -32,18 +31,11 @@ class APPClientChatBot(ChatBot):
             self.bot.send_text(greet)
 
 
-class APPClientPackageFactory(PackageFactory):
-    def __init__(self, client: Client):
-        self._handlers = {
-            "message_request": client.on_msg,
-            "timestamp_response": client.on_ts_response,
-            "system_message": client.on_sys_msg,
-        }
 
 
 class APPClient(Client):
     def __init__(self):
-        super().__init__(APPClientPackageFactory(self))
+        super().__init__()
         self.chat_bot = APPClientChatBot(self)
         self.add_chat(self.chat_bot)
 

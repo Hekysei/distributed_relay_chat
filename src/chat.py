@@ -2,7 +2,7 @@ from abc import ABC
 
 from src.package.package import Message, TimestampResponse
 from src.bot import Bot
-from src.client.net_client import NetClient
+from src.connection_handler import ConnectionHandler
 
 
 class Chat(ABC):
@@ -32,7 +32,7 @@ class ChatBot(Chat):
 
 
 class RemoteChat(Chat):
-    def __init__(self, name, net_client: NetClient):
+    def __init__(self, name, net_client: ConnectionHandler):
         super().__init__(name)
         self.net_client = net_client
 

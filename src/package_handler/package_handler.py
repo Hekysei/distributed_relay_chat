@@ -13,7 +13,3 @@ class PackageHandler:
     async def on_sys_msg(self, sys_msg: SystemMessage):
         pass
 
-class NamedPackageHandler(PackageHandler):
-    def __init__(self):
-        super().__init__()
-        self.username = "blank_name"
