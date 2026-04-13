@@ -4,6 +4,7 @@ from src.connection_handler import ConnectionHandler
 
 from src.package.package import SystemMessage
 
+
 class ActivePackageHandler(PackageHandler):
     def __init__(self, connection_handler: ConnectionHandler):
         super().__init__()

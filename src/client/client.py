@@ -23,7 +23,7 @@ class Client(ActivePackageHandler):
         connect_res = await self.connect(ip, port)
         if connect_res != "ok":
             return
-        
+
         await self.on_connected()
         await self.connection_handler.run()
 
