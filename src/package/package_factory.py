@@ -24,10 +24,6 @@ class PackageFactory(ABC):
         package_class: Type[Package] = self._classes[pkg_type]
         return self._handlers[pkg_type], package_class.from_json(json_str)
 
-    def process_json(self, json_str: str | bytes):
-        handler, instance = self.get_handler_and_instance(json_str)
-        handler(instance)
-
-    async def async_process_json(self, json_str: str | bytes):
+    async def process_json(self, json_str: str | bytes):
         handler, instance = self.get_handler_and_instance(json_str)
         await handler(instance)
