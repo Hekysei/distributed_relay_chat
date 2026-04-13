@@ -22,16 +22,6 @@ class Bot:
         for command in commands:
             self.add_command(*command)
 
-    def send_text(self, text: str):
-        self.send_message(
-            Message(
-                chat=self.chat_name,
-                sender=self.bot_name,
-                text=text,
-                timestamp=datetime.now(),
-            )
-        )
-
     async def async_send_text(self, text: str):
         await self.send_message(
             Message(
@@ -41,10 +31,6 @@ class Bot:
                 timestamp=datetime.now(),
             )
         )
-
-    def on_text(self, text: str):
-        if not self.command_router.route(text):
-            self.send_text("Unknown or Error")
 
     async def async_on_text(self, text: str):
         if not await self.command_router.async_route(text):

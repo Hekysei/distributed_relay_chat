@@ -33,7 +33,7 @@ class CommandRouter:
         if words := text.split():
             command = words[0]
             if command in self.commands_dict:
-                kwargs = self.commands_dict[command].kwargs
+                kwargs = self.commands_dict[command].kwargs.copy()
                 if kwargs:
                     kwargs: dict[str, str] | None = self.parse_args(words, kwargs)
                     if not kwargs:
