@@ -15,18 +15,18 @@ class CommandRouter:
     def add_command(self, command: str, function: Callable[...], args: dict[str, str]):
         self.commands_dict[command] = FuncArgsPair(function, args)
 
-    def route(self, text: str):
+    def route(self, text: str, *args):
         res = self.get_func_kwargs(text)
         if not res:
             return False
-        res[0](**res[1])
+        res[0](*args, **res[1])
         return True
 
-    async def async_route(self, text: str):
+    async def async_route(self, text: str, *args):
         res = self.get_func_kwargs(text)
         if not res:
             return False
-        await res[0](**res[1])
+        await res[0](*args, **res[1])
         return True
 
     def get_func_kwargs(self, text: str):

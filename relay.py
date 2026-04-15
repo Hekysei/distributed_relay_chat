@@ -11,7 +11,7 @@ class Relay:
     def __init__(self):
         self.server = Server()
         self.dispatcher = Dispatcher()
-        # self.bot = RelayBot()
+        self.bot = RelayBot(self.dispatcher)
 
         self.server.on_connection_callback = self.start_handler
 
@@ -19,7 +19,7 @@ class Relay:
         await self.server.run()
 
     async def start_handler(self, connection_handler: ConnectionHandler):
-        client_handler = ClientHandler(self.dispatcher, connection_handler)
+        client_handler = ClientHandler(self.dispatcher, connection_handler, self.bot)
         await client_handler.run()
 
 
