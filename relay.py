@@ -3,14 +3,15 @@
 import asyncio
 
 from src.relay.server import Server, ConnectionHandler
-from src.relay.dispatcher import Dispatcher
+from src.relay.dispatcher.dispatcher import Dispatcher
 from src.relay.client_handler import ClientHandler
-
+from src.relay.relay_bot import RelayBot
 
 class Relay:
     def __init__(self):
         self.server = Server()
         self.dispatcher = Dispatcher()
+        # self.bot = RelayBot()
 
         self.server.on_connection_callback = self.start_handler
 

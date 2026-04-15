@@ -1,5 +1,5 @@
 from src.connection_handler import ConnectionHandler
-from src.relay.dispatcher import Dispatcher
+from src.relay.dispatcher.dispatcher import Dispatcher
 from src.package.package import Message, TimestampResponse, SystemMessage
 from src.relay.relay_bot import RelayBot
 from src.package_handler.active_package_handler import ActivePackageHandler
@@ -21,9 +21,13 @@ class ClientHandler(ActivePackageHandler):
     async def run(self):
         await self.on_start()
         await self.connection_handler.run()
+        await self.on_end()
 
     async def on_start(self):
         await self.send_text_to_client("Welcome to relay")
+
+    async def on_end(self):
+        await self.dispatcher.remove_user(self.username)
 
     ### HANDLERS ###
     async def on_msg(self, msg: Message):
@@ -35,7 +39,7 @@ class ClientHandler(ActivePackageHandler):
         if msg.chat == self.bot.chat_name:
             await self.bot.async_on_text(msg.text)
         else:
-            await self.dispatcher.send_message(msg, self.send_message)
+            await self.dispatcher.broadcast(msg)
 
     async def on_sys_msg(self, sys_msg: SystemMessage):
         if sys_msg.msg_type == "set_username":
