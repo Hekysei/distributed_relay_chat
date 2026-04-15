@@ -33,5 +33,6 @@ class Bot:
         )
 
     async def async_on_text(self, text: str):
-        if not await self.command_router.async_route(text):
+        res = await self.command_router.async_route(text)
+        if not res:
             await self.async_send_text("Unknown or Error")
