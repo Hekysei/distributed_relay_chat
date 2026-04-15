@@ -1,8 +1,8 @@
 from src.connection_handler import ConnectionHandler
 from src.relay.dispatcher.dispatcher import Dispatcher
 from src.package.package import Message, TimestampResponse, SystemMessage
-from src.relay.relay_bot import RelayBot
 from src.package_handler.active_package_handler import ActivePackageHandler
+from src.relay.relay_bot import RelayBot
 
 
 class ClientHandler(ActivePackageHandler):
@@ -10,13 +10,14 @@ class ClientHandler(ActivePackageHandler):
         self,
         dispatcher: Dispatcher,
         connection_handler: ConnectionHandler,
+        relay_bot: RelayBot,
     ):
         super().__init__(connection_handler)
 
         self.dispatcher = dispatcher
         self.dispatcher
 
-        self.bot = RelayBot(self)
+        self.bot = relay_bot
 
     async def run(self):
         await self.on_start()
@@ -37,7 +38,7 @@ class ClientHandler(ActivePackageHandler):
         await self.send_tsr(TimestampResponse.from_message(msg))
 
         if msg.chat == self.bot.chat_name:
-            await self.bot.async_on_text(msg.text)
+            await self.bot.async_on_text_for(self, msg.text)
         else:
             await self.dispatcher.broadcast(msg)
 
