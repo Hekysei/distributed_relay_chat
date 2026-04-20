@@ -1,6 +1,8 @@
 from src.bot.bot import Bot
-from src.relay.dispatcher.dispatcher import Dispatcher
-from src.relay.dispatcher.dispatcher_interface import DispatchResult
+from src.relay.dispatcher.dispatcher_interface import (
+    DispatchResult,
+    DispatcherInterface,
+)
 from src.relay.message_factory import make_system_message
 
 RELAY_CHAT_NAME = "r/relay"
@@ -8,7 +10,7 @@ RELAY_BOT_NAME = "relay"
 
 
 class RelayBot(Bot):
-    def __init__(self, dispatcher: Dispatcher):
+    def __init__(self, dispatcher: DispatcherInterface):
         super().__init__(
             RELAY_CHAT_NAME, RELAY_BOT_NAME, lambda *_args, **_kwargs: None
         )
