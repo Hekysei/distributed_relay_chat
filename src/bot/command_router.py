@@ -41,6 +41,15 @@ class CommandRouter:
                 return self.commands_dict[command].function, kwargs
 
     def parse_args(self, words, args):
+        # Support shorthand positional format: /command value1 value2
+        positional_values = words[1:]
+        if positional_values and not any(word.startswith("--") for word in positional_values):
+            if len(positional_values) != len(args):
+                return None
+            for key, value in zip(args.keys(), positional_values):
+                args[key] = value
+            return args
+
         i = 1
         while i + 1 < len(words):
             if not words[i].startswith("--"):

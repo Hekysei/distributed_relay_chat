@@ -15,6 +15,9 @@ class DispatchCode(str, Enum):
     SUBSCRIBED = "subscribed"
     NO_SUCH_CHANNEL = "no_such_channel"
     USER_NOT_VERIFIED = "user_not_verified"
+    NO_SUCH_USER = "no_such_user"
+    DIRECT_SENT = "direct_sent"
+    CANNOT_DIRECT_SELF = "cannot_direct_self"
 
 
 @dataclass(frozen=True, slots=True)
@@ -65,7 +68,37 @@ class Dispatcher(DispatcherInterface):
         await self.channels[msg.chat].send_message(msg)
 
     async def send_message(self, addressee, msg):
-        self.users_funs[addressee](msg)
+        await self.users_funs[addressee](msg)
+
+    async def direct_message(
+        self, sender_username: str, recipient_username: str, msg: Message
+    ) -> DispatchResult:
+        validation_result = await self.validate_direct_message(
+            sender_username, recipient_username
+        )
+        if not validation_result.ok:
+            return validation_result
+        recipient_msg = Message(
+            chat=f"u/{sender_username}",
+            sender=msg.sender,
+            text=msg.text,
+            message_id=msg.message_id,
+            timestamp=msg.timestamp,
+            type=msg.type,
+        )
+        await self.users_funs[recipient_username](recipient_msg)
+        return DispatchResult(True, DispatchCode.DIRECT_SENT)
+
+    async def validate_direct_message(
+        self, sender_username: str, recipient_username: str
+    ) -> DispatchResult:
+        if sender_username not in self.users_funs:
+            return DispatchResult(False, DispatchCode.USER_NOT_VERIFIED)
+        if sender_username == recipient_username:
+            return DispatchResult(False, DispatchCode.CANNOT_DIRECT_SELF)
+        if recipient_username not in self.users_funs:
+            return DispatchResult(False, DispatchCode.NO_SUCH_USER)
+        return DispatchResult(True, DispatchCode.DIRECT_SENT)
 
     ### SUBSCRIPTIONS ###
     async def subscribe(self, channel_name: str, username: str) -> DispatchResult:
