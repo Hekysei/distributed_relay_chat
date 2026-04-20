@@ -1,5 +1,6 @@
 from src.bot.bot import Bot
-from src.relay.dispatcher.dispatcher import DispatchResult, Dispatcher
+from src.relay.dispatcher.dispatcher import Dispatcher
+from src.relay.dispatcher.dispatcher_interface import DispatchResult
 from src.relay.message_factory import make_system_message
 
 RELAY_CHAT_NAME = "r/relay"

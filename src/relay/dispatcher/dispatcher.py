@@ -1,35 +1,12 @@
-from dataclasses import dataclass
-from enum import Enum
 from typing import Awaitable, Callable
 
 from src.package.package import Message
 from src.relay.dispatcher.channel import Channel
-from src.relay.dispatcher.dispatcher_interface import DispatcherInterface
-
-
-class DispatchCode(str, Enum):
-    CHANNEL_CREATED = "Channel created"
-    CHANNEL_ALREADY_EXISTS = "Room already exists"
-    USER_ADDED = "User verified"
-    USERNAME_TAKEN = "The name is already taken"
-    SUBSCRIBED = "Subscribed to room"
-    NO_SUCH_CHANNEL = "There is no room with name"
-    USER_NOT_VERIFIED = "User is not verified"
-    NO_SUCH_USER = "User is offline or does not exist"
-    DIRECT_SENT = "Direct message sent"
-    CANNOT_DIRECT_SELF = "You cannot start direct chat with yourself"
-
-
-@dataclass(frozen=True, slots=True)
-class DispatchResult:
-    ok: bool
-    code: DispatchCode
-    params: str | None = None
-
-    def format_error(self) -> str:
-        if self.params:
-            return f"{self.code.value}: {self.params}"
-        return self.code.value
+from src.relay.dispatcher.dispatcher_interface import (
+    DispatchCode,
+    DispatchResult,
+    DispatcherInterface,
+)
 
 
 class Dispatcher(DispatcherInterface):
