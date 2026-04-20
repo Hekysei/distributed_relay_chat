@@ -1,4 +1,5 @@
 from src.bot.bot import Bot
+from src.package.package import Message
 from src.relay.dispatcher.dispatcher import DispatchCode, Dispatcher
 
 RELAY_CHAT_NAME = "r/relay"
@@ -90,14 +91,8 @@ class RelayBot(Bot):
             await self.async_send_text_to(client_handler, "Unknown or Error")
 
     def _make_message(self, text: str):
-        # Use Bot's message shape (chat_name/bot_name + timestamp logic in Message itself).
-        # Bot.async_send_text can't be used because RelayBot is shared across clients.
-        from datetime import datetime
-        from src.package.package import Message
-
         return Message(
             chat=self.chat_name,
             sender=self.bot_name,
             text=text,
-            timestamp=datetime.now(),
-        )
+        ).set_timestamp_now()
