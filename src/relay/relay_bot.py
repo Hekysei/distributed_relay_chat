@@ -60,6 +60,41 @@ class RelayBot(Bot):
                 return
             await self.async_send_text_to(client_handler, "Unknown or Error")
 
+        async def direct(client_handler, name):
+            res = await self.dispatcher.validate_direct_message(
+                client_handler.username, name
+            )
+            if res.ok:
+                initiator_msg = Message(
+                    chat=f"u/{name}",
+                    sender=self.bot_name,
+                    text=f"Direct chat with {name} started",
+                ).set_timestamp_now()
+                recipient_msg = Message(
+                    chat=f"u/{client_handler.username}",
+                    sender=self.bot_name,
+                    text=f"{client_handler.username} started a direct chat with you",
+                ).set_timestamp_now()
+                await client_handler.send_message(initiator_msg)
+                await self.dispatcher.send_message(name, recipient_msg)
+                return
+            if res.code == DispatchCode.USER_NOT_VERIFIED:
+                await self.async_send_text_to(
+                    client_handler, "Verify first with /v before starting direct chat"
+                )
+                return
+            if res.code == DispatchCode.CANNOT_DIRECT_SELF:
+                await self.async_send_text_to(
+                    client_handler, "You cannot start a direct chat with yourself"
+                )
+                return
+            if res.code == DispatchCode.NO_SUCH_USER:
+                await self.async_send_text_to(
+                    client_handler, f"User {name} is offline or does not exist"
+                )
+                return
+            await self.async_send_text_to(client_handler, "Unknown or Error")
+
         name_kwargs = {
             "name": "blank_name",
         }
@@ -78,6 +113,11 @@ class RelayBot(Bot):
                 "/v",
                 verify,
                 {},
+            ),
+            (
+                "/direct",
+                direct,
+                name_kwargs,
             ),
         ]
         self.add_commands(CLIENT_COMMANDS)
