@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from enum import Enum
-from typing import Callable
+from typing import Awaitable, Callable
 
 from src.package.package import Message
 from src.relay.dispatcher.channel import Channel
@@ -26,11 +26,16 @@ class DispatchResult:
     code: DispatchCode
     params: str | None = None
 
+    def format_error(self) -> str:
+        if self.params:
+            return f"{self.code.value}: {self.params}"
+        return self.code.value
+
 
 class Dispatcher(DispatcherInterface):
     def __init__(self):
         self.channels: dict[str, Channel] = dict()
-        self.users_funs: dict[str, Callable[[Message]]] = dict()
+        self.users_funs: dict[str, Callable[[Message], Awaitable[None]]] = dict()
         self.users_channels: dict[str, set[str]] = dict()
 
     ### ADD / REMOVE CHANNELS ###
@@ -48,7 +53,7 @@ class Dispatcher(DispatcherInterface):
 
     ### ADD / REMOVE USER ###
     async def add_user(
-        self, username: str, send_func: Callable[[Message]]
+        self, username: str, send_func: Callable[[Message], Awaitable[None]]
     ) -> DispatchResult:
         if username in self.users_funs:
             return DispatchResult(False, DispatchCode.USERNAME_TAKEN, username)
