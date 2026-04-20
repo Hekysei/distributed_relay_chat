@@ -1,6 +1,6 @@
 from src.bot.bot import Bot
 from src.package.package import Message
-from src.relay.dispatcher.dispatcher import DispatchCode, Dispatcher
+from src.relay.dispatcher.dispatcher import Dispatcher
 
 RELAY_CHAT_NAME = "r/relay"
 RELAY_BOT_NAME = "relay"
@@ -13,6 +13,11 @@ class RelayBot(Bot):
         )
         self.dispatcher = dispatcher
 
+        def format_dispatch_error(res):
+            if res.params:
+                return f"{res.code.value}: {res.params}"
+            return res.code.value
+
         async def join_channel(client_handler, name):
             res = await self.dispatcher.subscribe(name, client_handler.username)
             if res.ok:
@@ -20,12 +25,7 @@ class RelayBot(Bot):
                     client_handler, f"You have subscribed to the room: {name}"
                 )
                 return
-            if res.code == DispatchCode.NO_SUCH_CHANNEL:
-                await self.async_send_text_to(
-                    client_handler, f"There is no room with name: {name}"
-                )
-                return
-            await self.async_send_text_to(client_handler, "Unknown or Error")
+            await self.async_send_text_to(client_handler, format_dispatch_error(res))
 
         async def add_channel(client_handler, name):
             res = await self.dispatcher.add_channel(name)
@@ -35,12 +35,7 @@ class RelayBot(Bot):
                 )
                 await join_channel(client_handler, name)
                 return
-            if res.code == DispatchCode.CHANNEL_ALREADY_EXISTS:
-                await self.async_send_text_to(
-                    client_handler, f"Room {name} already exists"
-                )
-                return
-            await self.async_send_text_to(client_handler, "Unknown or Error")
+            await self.async_send_text_to(client_handler, format_dispatch_error(res))
 
         async def verify(client_handler):
             res = await self.dispatcher.add_user(
@@ -52,13 +47,7 @@ class RelayBot(Bot):
                     f"You are verified. Your name: {client_handler.username}",
                 )
                 return
-            if res.code == DispatchCode.USERNAME_TAKEN:
-                await self.async_send_text_to(
-                    client_handler,
-                    f"The name {client_handler.username} is already taken",
-                )
-                return
-            await self.async_send_text_to(client_handler, "Unknown or Error")
+            await self.async_send_text_to(client_handler, format_dispatch_error(res))
 
         async def direct(client_handler, name):
             res = await self.dispatcher.validate_direct_message(
@@ -78,22 +67,7 @@ class RelayBot(Bot):
                 await client_handler.send_message(initiator_msg)
                 await self.dispatcher.send_message(name, recipient_msg)
                 return
-            if res.code == DispatchCode.USER_NOT_VERIFIED:
-                await self.async_send_text_to(
-                    client_handler, "Verify first with /v before starting direct chat"
-                )
-                return
-            if res.code == DispatchCode.CANNOT_DIRECT_SELF:
-                await self.async_send_text_to(
-                    client_handler, "You cannot start a direct chat with yourself"
-                )
-                return
-            if res.code == DispatchCode.NO_SUCH_USER:
-                await self.async_send_text_to(
-                    client_handler, f"User {name} is offline or does not exist"
-                )
-                return
-            await self.async_send_text_to(client_handler, "Unknown or Error")
+            await self.async_send_text_to(client_handler, format_dispatch_error(res))
 
         name_kwargs = {
             "name": "blank_name",
