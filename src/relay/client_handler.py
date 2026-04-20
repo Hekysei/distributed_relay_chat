@@ -1,5 +1,6 @@
 from src.connection_handler import ConnectionHandler
 from src.relay.dispatcher.dispatcher import Dispatcher
+from src.relay.message_factory import make_system_message
 from src.package.package import Message, TimestampResponse, SystemMessage
 from src.package_handler.active_package_handler import ActivePackageHandler
 from src.relay.relay_bot import RelayBot
@@ -15,7 +16,6 @@ class ClientHandler(ActivePackageHandler):
         super().__init__(connection_handler)
 
         self.dispatcher = dispatcher
-        self.dispatcher
 
         self.bot = relay_bot
 
@@ -39,24 +39,22 @@ class ClientHandler(ActivePackageHandler):
 
         if msg.chat == self.bot.chat_name:
             await self.bot.async_on_text_for(self, msg.text)
-        elif msg.chat.startswith("u/"):
+            return
+        if msg.chat.startswith("u/"):
             recipient_username = msg.chat[2:]
             res = await self.dispatcher.direct_message(
                 self.username, recipient_username, msg
             )
             if not res.ok:
-                error_text = res.code.value
-                if res.params:
-                    error_text = f"{error_text}: {res.params}"
                 await self.send_message(
-                    Message(
+                    make_system_message(
                         chat=msg.chat,
                         sender=self.bot.bot_name,
-                        text=error_text,
-                    ).set_timestamp_now()
+                        text=res.format_error(),
+                    )
                 )
-        else:
-            await self.dispatcher.broadcast(msg)
+            return
+        await self.dispatcher.broadcast(msg)
 
     async def on_sys_msg(self, sys_msg: SystemMessage):
         if sys_msg.msg_type == "set_username":
@@ -64,9 +62,11 @@ class ClientHandler(ActivePackageHandler):
 
     async def send_text_to_client(self, text: str):
         await self.send_message(
-            Message(
-                chat=self.bot.chat_name, sender=self.bot.bot_name, text=text
-            ).set_timestamp_now()
+            make_system_message(
+                chat=self.bot.chat_name,
+                sender=self.bot.bot_name,
+                text=text,
+            )
         )
 
     async def set_username(self, name: str):
