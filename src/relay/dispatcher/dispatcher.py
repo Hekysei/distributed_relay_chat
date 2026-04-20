@@ -8,22 +8,23 @@ from src.relay.dispatcher.dispatcher_interface import DispatcherInterface
 
 
 class DispatchCode(str, Enum):
-    CHANNEL_CREATED = "channel_created"
-    CHANNEL_ALREADY_EXISTS = "channel_already_exists"
-    USER_ADDED = "user_added"
-    USERNAME_TAKEN = "username_taken"
-    SUBSCRIBED = "subscribed"
-    NO_SUCH_CHANNEL = "no_such_channel"
-    USER_NOT_VERIFIED = "user_not_verified"
-    NO_SUCH_USER = "no_such_user"
-    DIRECT_SENT = "direct_sent"
-    CANNOT_DIRECT_SELF = "cannot_direct_self"
+    CHANNEL_CREATED = "Channel created"
+    CHANNEL_ALREADY_EXISTS = "Room already exists"
+    USER_ADDED = "User verified"
+    USERNAME_TAKEN = "The name is already taken"
+    SUBSCRIBED = "Subscribed to room"
+    NO_SUCH_CHANNEL = "There is no room with name"
+    USER_NOT_VERIFIED = "User is not verified"
+    NO_SUCH_USER = "User is offline or does not exist"
+    DIRECT_SENT = "Direct message sent"
+    CANNOT_DIRECT_SELF = "You cannot start direct chat with yourself"
 
 
 @dataclass(frozen=True, slots=True)
 class DispatchResult:
     ok: bool
     code: DispatchCode
+    params: str | None = None
 
 
 class Dispatcher(DispatcherInterface):
@@ -35,7 +36,7 @@ class Dispatcher(DispatcherInterface):
     ### ADD / REMOVE CHANNELS ###
     async def add_channel(self, channel_name: str) -> DispatchResult:
         if channel_name in self.channels:
-            return DispatchResult(False, DispatchCode.CHANNEL_ALREADY_EXISTS)
+            return DispatchResult(False, DispatchCode.CHANNEL_ALREADY_EXISTS, channel_name)
         self.channels[channel_name] = Channel(channel_name, self)
         return DispatchResult(True, DispatchCode.CHANNEL_CREATED)
 
@@ -50,7 +51,7 @@ class Dispatcher(DispatcherInterface):
         self, username: str, send_func: Callable[[Message]]
     ) -> DispatchResult:
         if username in self.users_funs:
-            return DispatchResult(False, DispatchCode.USERNAME_TAKEN)
+            return DispatchResult(False, DispatchCode.USERNAME_TAKEN, username)
         self.users_funs[username] = send_func
         self.users_channels[username] = set()
         return DispatchResult(True, DispatchCode.USER_ADDED)
@@ -93,19 +94,19 @@ class Dispatcher(DispatcherInterface):
         self, sender_username: str, recipient_username: str
     ) -> DispatchResult:
         if sender_username not in self.users_funs:
-            return DispatchResult(False, DispatchCode.USER_NOT_VERIFIED)
+            return DispatchResult(False, DispatchCode.USER_NOT_VERIFIED, sender_username)
         if sender_username == recipient_username:
-            return DispatchResult(False, DispatchCode.CANNOT_DIRECT_SELF)
+            return DispatchResult(False, DispatchCode.CANNOT_DIRECT_SELF, sender_username)
         if recipient_username not in self.users_funs:
-            return DispatchResult(False, DispatchCode.NO_SUCH_USER)
+            return DispatchResult(False, DispatchCode.NO_SUCH_USER, recipient_username)
         return DispatchResult(True, DispatchCode.DIRECT_SENT)
 
     ### SUBSCRIPTIONS ###
     async def subscribe(self, channel_name: str, username: str) -> DispatchResult:
         if channel_name not in self.channels:
-            return DispatchResult(False, DispatchCode.NO_SUCH_CHANNEL)
+            return DispatchResult(False, DispatchCode.NO_SUCH_CHANNEL, channel_name)
         if username not in self.users_channels:
-            return DispatchResult(False, DispatchCode.USER_NOT_VERIFIED)
+            return DispatchResult(False, DispatchCode.USER_NOT_VERIFIED, username)
         await self.channels[channel_name].subscribe(username)
         self.users_channels[username].add(channel_name)
         return DispatchResult(True, DispatchCode.SUBSCRIBED)

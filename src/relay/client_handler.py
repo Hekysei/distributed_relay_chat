@@ -1,5 +1,5 @@
 from src.connection_handler import ConnectionHandler
-from src.relay.dispatcher.dispatcher import DispatchCode, Dispatcher
+from src.relay.dispatcher.dispatcher import Dispatcher
 from src.package.package import Message, TimestampResponse, SystemMessage
 from src.package_handler.active_package_handler import ActivePackageHandler
 from src.relay.relay_bot import RelayBot
@@ -45,15 +45,9 @@ class ClientHandler(ActivePackageHandler):
                 self.username, recipient_username, msg
             )
             if not res.ok:
-                error_text = "Cannot send direct message"
-                if res.code == DispatchCode.USER_NOT_VERIFIED:
-                    error_text = "Verify first with /v before sending direct messages"
-                elif res.code == DispatchCode.CANNOT_DIRECT_SELF:
-                    error_text = "You cannot send direct messages to yourself"
-                elif res.code == DispatchCode.NO_SUCH_USER:
-                    error_text = (
-                        f"Cannot send direct message to {recipient_username}: user is offline or unknown"
-                    )
+                error_text = res.code.value
+                if res.params:
+                    error_text = f"{error_text}: {res.params}"
                 await self.send_message(
                     Message(
                         chat=msg.chat,
