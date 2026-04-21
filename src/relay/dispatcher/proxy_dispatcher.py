@@ -129,3 +129,6 @@ class ProxyDispatcher(DispatcherInterface):
             self.user_roles[target_user_code] = UserRole.VERIFIED
         return DispatchResult(True, DispatchCode.USER_VERIFIED, target_user_code)
 
+    async def get_moderator_code(self) -> str | None:
+        return self.moderator_code
+

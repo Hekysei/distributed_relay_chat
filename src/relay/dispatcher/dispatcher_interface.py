@@ -95,3 +95,7 @@ class DispatcherInterface(ABC):
         self, moderator_code: str, target_user_code: str
     ) -> "DispatchResult":
         raise NotImplementedError
+
+    @abstractmethod
+    async def get_moderator_code(self) -> str | None:
+        raise NotImplementedError
