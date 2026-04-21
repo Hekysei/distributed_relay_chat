@@ -5,6 +5,10 @@ from src.package.package import Message, TimestampResponse, SystemMessage
 from src.package_handler.active_package_handler import ActivePackageHandler
 from src.relay.relay_bot import RelayBot
 
+CHAT_PREFIX_LENGTH = 2
+ROOM_CHAT_PREFIX = "c/"
+DIRECT_CHAT_PREFIX = "u/"
+
 
 class ClientHandler(ActivePackageHandler):
     def __init__(
@@ -41,10 +45,12 @@ class ClientHandler(ActivePackageHandler):
 
         await self.send_tsr(TimestampResponse.from_message(msg))
 
+        chat_prefix = msg.chat[:CHAT_PREFIX_LENGTH]
+
         if msg.chat == self.bot.chat_name:
             await self.bot.async_on_text_for(self, msg.text)
-            return
-        if msg.chat.startswith("u/"):
+
+        elif chat_prefix == DIRECT_CHAT_PREFIX:
             recipient_code = msg.chat[2:]
             res = await self.dispatcher.direct_message(
                 self.user_code, recipient_code, msg
@@ -57,14 +63,22 @@ class ClientHandler(ActivePackageHandler):
                         text=res.format_error(),
                     )
                 )
-            return
-        res = await self.dispatcher.broadcast(self.user_code, msg)
-        if not res.ok:
+        elif chat_prefix == ROOM_CHAT_PREFIX:
+            res = await self.dispatcher.broadcast(self.user_code, msg)
+            if not res.ok:
+                await self.send_message(
+                    make_system_message(
+                        chat=msg.chat,
+                        sender=self.bot.bot_name,
+                        text=res.format_error(),
+                    )
+                )
+        else:
             await self.send_message(
                 make_system_message(
                     chat=msg.chat,
                     sender=self.bot.bot_name,
-                    text=res.format_error(),
+                    text=f"Unsupported chat prefix: {chat_prefix}",
                 )
             )
 

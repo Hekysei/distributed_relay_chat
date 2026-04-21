@@ -7,6 +7,7 @@ from src.relay.message_factory import make_system_message
 
 RELAY_CHAT_NAME = "r/relay"
 RELAY_BOT_NAME = "relay"
+ROOM_CHAT_PREFIX = "c/"
 
 
 class RelayBot(Bot):
@@ -64,14 +65,16 @@ class RelayBot(Bot):
         return dispatch_result.ok
 
     async def _cmd_join_channel(self, client_handler, name: str):
-        res = await self.dispatcher.subscribe(name, client_handler.user_code)
+        channel_name = self._room_chat_name(name)
+        res = await self.dispatcher.subscribe(channel_name, client_handler.user_code)
         await self._send_dispatch_code(client_handler, res)
 
     async def _cmd_create_channel(self, client_handler, name: str):
-        res = await self.dispatcher.add_channel(name, client_handler.user_code)
+        channel_name = self._room_chat_name(name)
+        res = await self.dispatcher.add_channel(channel_name, client_handler.user_code)
         if not await self._send_dispatch_code(client_handler, res):
             return
-        await self._cmd_join_channel(client_handler, name)
+        await self._cmd_join_channel(client_handler, channel_name)
 
     async def _cmd_direct(self, client_handler, code: str):
         res = await self.dispatcher.validate_direct_message(client_handler.user_code, code)
@@ -104,3 +107,8 @@ class RelayBot(Bot):
             sender=self.bot_name,
             text=text,
         )
+
+    def _room_chat_name(self, name: str) -> str:
+        if name.startswith(ROOM_CHAT_PREFIX):
+            return name
+        return f"{ROOM_CHAT_PREFIX}{name}"
