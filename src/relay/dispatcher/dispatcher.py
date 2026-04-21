@@ -1,4 +1,5 @@
 from typing import Awaitable, Callable
+from uuid import uuid4
 
 from src.package.package import Message
 from src.relay.dispatcher.channel import Channel
@@ -30,71 +31,76 @@ class Dispatcher(DispatcherInterface):
 
     ### ADD / REMOVE USER ###
     async def add_user(
-        self, username: str, send_func: Callable[[Message], Awaitable[None]]
-    ) -> DispatchResult:
-        if username in self.users_funs:
-            return DispatchResult(False, DispatchCode.USERNAME_TAKEN, username)
-        self.users_funs[username] = send_func
-        self.users_channels[username] = set()
-        return DispatchResult(True, DispatchCode.USER_ADDED)
+        self, send_func: Callable[[Message], Awaitable[None]]
+    ) -> tuple[str, DispatchResult]:
+        user_code = self._make_unique_user_code()
+        self.users_funs[user_code] = send_func
+        self.users_channels[user_code] = set()
+        return user_code, DispatchResult(True, DispatchCode.USER_ADDED)
 
-    async def remove_user(self, username):
-        if username in self.users_funs:
-            channels = self.users_channels[username]
-            self.users_channels.pop(username)
+    async def remove_user(self, user_code: str):
+        if user_code in self.users_funs:
+            channels = self.users_channels[user_code]
+            self.users_channels.pop(user_code)
             for channel_name in channels:
-                await self.unsubscribe(channel_name, username)
-            self.users_funs.pop(username)
+                await self.unsubscribe(channel_name, user_code)
+            self.users_funs.pop(user_code)
 
     ### SEND_MESSAGE ###
-    async def broadcast(self, msg: Message):
-        await self.channels[msg.chat].send_message(msg)
+    async def broadcast(self, sender_code: str, msg: Message):
+        await self.channels[msg.chat].send_message(sender_code, msg)
 
     async def send_message(self, addressee, msg):
         await self.users_funs[addressee](msg)
 
     async def direct_message(
-        self, sender_username: str, recipient_username: str, msg: Message
+        self, sender_code: str, recipient_code: str, msg: Message
     ) -> DispatchResult:
         validation_result = await self.validate_direct_message(
-            sender_username, recipient_username
+            sender_code, recipient_code
         )
         if not validation_result.ok:
             return validation_result
         recipient_msg = Message(
-            chat=f"u/{sender_username}",
+            chat=f"u/{sender_code}",
             sender=msg.sender,
             text=msg.text,
             message_id=msg.message_id,
             timestamp=msg.timestamp,
             type=msg.type,
         )
-        await self.users_funs[recipient_username](recipient_msg)
+        await self.users_funs[recipient_code](recipient_msg)
         return DispatchResult(True, DispatchCode.DIRECT_SENT)
 
     async def validate_direct_message(
-        self, sender_username: str, recipient_username: str
+        self, sender_code: str, recipient_code: str
     ) -> DispatchResult:
-        if sender_username not in self.users_funs:
-            return DispatchResult(False, DispatchCode.USER_NOT_VERIFIED, sender_username)
-        if sender_username == recipient_username:
-            return DispatchResult(False, DispatchCode.CANNOT_DIRECT_SELF, sender_username)
-        if recipient_username not in self.users_funs:
-            return DispatchResult(False, DispatchCode.NO_SUCH_USER, recipient_username)
+        if sender_code not in self.users_funs:
+            return DispatchResult(False, DispatchCode.USER_NOT_CONNECTED, sender_code)
+        if sender_code == recipient_code:
+            return DispatchResult(False, DispatchCode.CANNOT_DIRECT_SELF, sender_code)
+        if recipient_code not in self.users_funs:
+            return DispatchResult(False, DispatchCode.NO_SUCH_USER, recipient_code)
         return DispatchResult(True, DispatchCode.DIRECT_SENT)
 
     ### SUBSCRIPTIONS ###
-    async def subscribe(self, channel_name: str, username: str) -> DispatchResult:
+    async def subscribe(self, channel_name: str, user_code: str) -> DispatchResult:
         if channel_name not in self.channels:
             return DispatchResult(False, DispatchCode.NO_SUCH_CHANNEL, channel_name)
-        if username not in self.users_channels:
-            return DispatchResult(False, DispatchCode.USER_NOT_VERIFIED, username)
-        await self.channels[channel_name].subscribe(username)
-        self.users_channels[username].add(channel_name)
+        if user_code not in self.users_channels:
+            return DispatchResult(False, DispatchCode.USER_NOT_CONNECTED, user_code)
+        await self.channels[channel_name].subscribe(user_code)
+        self.users_channels[user_code].add(channel_name)
         return DispatchResult(True, DispatchCode.SUBSCRIBED)
 
-    async def unsubscribe(self, channel_name: str, username: str):
+    async def unsubscribe(self, channel_name: str, user_code: str):
         if channel_name in self.channels:
-            await self.channels[channel_name].unsubscribe(username)
-        if username in self.users_channels:
-            self.users_channels[username].remove(channel_name)
+            await self.channels[channel_name].unsubscribe(user_code)
+        if user_code in self.users_channels:
+            self.users_channels[user_code].remove(channel_name)
+
+    def _make_unique_user_code(self) -> str:
+        while True:
+            user_code = str(uuid4())
+            if user_code not in self.users_funs:
+                return user_code

@@ -19,6 +19,9 @@ class RelayBot(Bot):
         name_kwargs = {
             "name": "blank_name",
         }
+        code_kwargs = {
+            "code": "blank_code",
+        }
         CLIENT_COMMANDS = [
             (
                 "/create",
@@ -31,14 +34,9 @@ class RelayBot(Bot):
                 name_kwargs,
             ),
             (
-                "/v",
-                self._cmd_verify,
-                {},
-            ),
-            (
                 "/direct",
                 self._cmd_direct,
-                name_kwargs,
+                code_kwargs,
             ),
         ]
         self.add_commands(CLIENT_COMMANDS)
@@ -55,7 +53,7 @@ class RelayBot(Bot):
         await self.async_send_text_to(client_handler, dispatch_result.format_error())
 
     async def _cmd_join_channel(self, client_handler, name: str):
-        res = await self.dispatcher.subscribe(name, client_handler.username)
+        res = await self.dispatcher.subscribe(name, client_handler.user_code)
         if not res.ok:
             await self._send_dispatch_error(client_handler, res)
             return
@@ -71,35 +69,23 @@ class RelayBot(Bot):
         await self.async_send_text_to(client_handler, f"Room {name} successfully created")
         await self._cmd_join_channel(client_handler, name)
 
-    async def _cmd_verify(self, client_handler):
-        res = await self.dispatcher.add_user(
-            client_handler.username, client_handler.send_message
-        )
-        if not res.ok:
-            await self._send_dispatch_error(client_handler, res)
-            return
-        await self.async_send_text_to(
-            client_handler,
-            f"You are verified. Your name: {client_handler.username}",
-        )
-
-    async def _cmd_direct(self, client_handler, name: str):
-        res = await self.dispatcher.validate_direct_message(client_handler.username, name)
+    async def _cmd_direct(self, client_handler, code: str):
+        res = await self.dispatcher.validate_direct_message(client_handler.user_code, code)
         if not res.ok:
             await self._send_dispatch_error(client_handler, res)
             return
         initiator_msg = make_system_message(
-            chat=f"u/{name}",
+            chat=f"u/{code}",
             sender=self.bot_name,
-            text=f"Direct chat with {name} started",
+            text=f"Direct chat with {code} started",
         )
         recipient_msg = make_system_message(
-            chat=f"u/{client_handler.username}",
+            chat=f"u/{client_handler.user_code}",
             sender=self.bot_name,
-            text=f"{client_handler.username} started a direct chat with you",
+            text=f"{client_handler.username} ({client_handler.user_code}) started a direct chat with you",
         )
         await client_handler.send_message(initiator_msg)
-        await self.dispatcher.send_message(name, recipient_msg)
+        await self.dispatcher.send_message(code, recipient_msg)
 
     def _make_message(self, text: str):
         return make_system_message(

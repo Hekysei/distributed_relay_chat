@@ -18,6 +18,7 @@ class ClientHandler(ActivePackageHandler):
         self.dispatcher = dispatcher
 
         self.bot = relay_bot
+        self.user_code = ""
 
     async def run(self):
         await self.on_start()
@@ -25,10 +26,13 @@ class ClientHandler(ActivePackageHandler):
         await self.on_end()
 
     async def on_start(self):
+        self.user_code, _ = await self.dispatcher.add_user(self.send_message)
         await self.send_text_to_client("Welcome to relay")
+        await self.send_text_to_client(f"Your relay code is {self.user_code}")
 
     async def on_end(self):
-        await self.dispatcher.remove_user(self.username)
+        if self.user_code:
+            await self.dispatcher.remove_user(self.user_code)
 
     ### HANDLERS ###
     async def on_msg(self, msg: Message):
@@ -41,9 +45,9 @@ class ClientHandler(ActivePackageHandler):
             await self.bot.async_on_text_for(self, msg.text)
             return
         if msg.chat.startswith("u/"):
-            recipient_username = msg.chat[2:]
+            recipient_code = msg.chat[2:]
             res = await self.dispatcher.direct_message(
-                self.username, recipient_username, msg
+                self.user_code, recipient_code, msg
             )
             if not res.ok:
                 await self.send_message(
@@ -54,7 +58,7 @@ class ClientHandler(ActivePackageHandler):
                     )
                 )
             return
-        await self.dispatcher.broadcast(msg)
+        await self.dispatcher.broadcast(self.user_code, msg)
 
     async def on_sys_msg(self, sys_msg: SystemMessage):
         if sys_msg.msg_type == "set_username":
