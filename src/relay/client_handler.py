@@ -8,6 +8,7 @@ from src.relay.relay_bot import RelayBot
 CHAT_PREFIX_LENGTH = 2
 ROOM_CHAT_PREFIX = "c/"
 DIRECT_CHAT_PREFIX = "u/"
+MODERATOR_CHAT_PREFIX = "m/"
 
 
 class ClientHandler(ActivePackageHandler):
@@ -30,8 +31,8 @@ class ClientHandler(ActivePackageHandler):
         await self.on_end()
 
     async def on_start(self):
-        self.user_code, _ = await self.dispatcher.add_user(self.send_message)
         await self.send_text_to_client("Welcome to relay")
+        self.user_code, _ = await self.dispatcher.add_user(self.send_message)
         await self.send_text_to_client(f"Your relay code is {self.user_code}")
 
     async def on_end(self):
@@ -49,6 +50,8 @@ class ClientHandler(ActivePackageHandler):
 
         if msg.chat == self.bot.chat_name:
             await self._handle_bot_message(msg)
+        elif chat_prefix == MODERATOR_CHAT_PREFIX:
+            await self._handle_moderator_message(msg)
         elif chat_prefix == DIRECT_CHAT_PREFIX:
             await self._handle_direct_message(msg)
         elif chat_prefix == ROOM_CHAT_PREFIX:
@@ -62,6 +65,11 @@ class ClientHandler(ActivePackageHandler):
     async def _handle_direct_message(self, msg: Message):
         recipient_code = msg.chat[CHAT_PREFIX_LENGTH:]
         res = await self.dispatcher.direct_message(self.user_code, recipient_code, msg)
+        if not res.ok:
+            await self._send_error_message(msg.chat, res.format_error())
+
+    async def _handle_moderator_message(self, msg: Message):
+        res = await self.dispatcher.direct_message_to_moderator(self.user_code, msg)
         if not res.ok:
             await self._send_error_message(msg.chat, res.format_error())
 

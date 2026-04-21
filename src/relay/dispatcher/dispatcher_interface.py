@@ -96,3 +96,9 @@ class DispatcherInterface(ABC):
     ) -> "DispatchResult":
         raise NotImplementedError
 
+    @abstractmethod
+    async def direct_message_to_moderator(
+        self, sender_code: str, msg: Message
+    ) -> "DispatchResult":
+        raise NotImplementedError
+

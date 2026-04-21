@@ -30,6 +30,8 @@ class AccessRule:
 
 
 class ProxyDispatcher(DispatcherInterface):
+    MODERATOR_CHAT_NAME = "m/moderator"
+
     def __init__(
         self,
         dispatcher: DispatcherInterface,
@@ -96,12 +98,37 @@ class ProxyDispatcher(DispatcherInterface):
     async def direct_message(
         self, sender_code: str, recipient_code: str, msg: Message
     ) -> DispatchResult:
+        if self.moderator_code is None:
+            return await self.dispatcher.direct_message(sender_code, recipient_code, msg)
+        if recipient_code == self.moderator_code:
+            return await self.direct_message_to_moderator(sender_code, msg)
+        if sender_code == self.moderator_code:
+            return await self._send_from_moderator(recipient_code, msg)
         return await self.dispatcher.direct_message(sender_code, recipient_code, msg)
 
     async def validate_direct_message(
         self, sender_code: str, recipient_code: str
     ) -> DispatchResult:
         return await self.dispatcher.validate_direct_message(sender_code, recipient_code)
+
+    async def direct_message_to_moderator(
+        self, sender_code: str, msg: Message
+    ) -> DispatchResult:
+        if self.moderator_code is None:
+            return DispatchResult(False, DispatchCode.NO_SUCH_USER, "moderator")
+        if sender_code == self.moderator_code:
+            return DispatchResult(False, DispatchCode.CANNOT_DIRECT_SELF, sender_code)
+        mapped_msg = Message(
+            chat=f"u/{self.moderator_code}",
+            sender=msg.sender,
+            text=msg.text,
+            message_id=msg.message_id,
+            timestamp=msg.timestamp,
+            type=msg.type,
+        )
+        return await self.dispatcher.direct_message(
+            sender_code, self.moderator_code, mapped_msg
+        )
 
     async def subscribe(self, channel_name: str, user_code: str) -> DispatchResult:
         if not self._has_access(PermissionAction.SUBSCRIBE_CHANNEL, user_code):
@@ -137,9 +164,26 @@ class ProxyDispatcher(DispatcherInterface):
         await self.dispatcher.send_message(
             user_code,
             make_system_message(
-                chat=f"u/{self.moderator_code}",
+                chat=self.MODERATOR_CHAT_NAME,
                 sender="moderator",
                 text="Welcome! This is an automatic direct message from the moderator.",
             ),
         )
+
+    async def _send_from_moderator(self, recipient_code: str, msg: Message) -> DispatchResult:
+        validation_result = await self.dispatcher.validate_direct_message(
+            self.moderator_code, recipient_code
+        )
+        if not validation_result.ok:
+            return validation_result
+        recipient_msg = Message(
+            chat=self.MODERATOR_CHAT_NAME,
+            sender=msg.sender,
+            text=msg.text,
+            message_id=msg.message_id,
+            timestamp=msg.timestamp,
+            type=msg.type,
+        )
+        await self.dispatcher.send_message(recipient_code, recipient_msg)
+        return DispatchResult(True, DispatchCode.DIRECT_SENT)
 
