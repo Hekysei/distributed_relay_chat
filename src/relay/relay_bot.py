@@ -59,30 +59,23 @@ class RelayBot(Bot):
         if not res:
             await self.async_send_text_to(client_handler, "Unknown or Error")
 
-    async def _send_dispatch_error(self, client_handler, dispatch_result: DispatchResult):
+    async def _send_dispatch_code(self, client_handler, dispatch_result: DispatchResult):
         await self.async_send_text_to(client_handler, dispatch_result.format_error())
+        return dispatch_result.ok
 
     async def _cmd_join_channel(self, client_handler, name: str):
         res = await self.dispatcher.subscribe(name, client_handler.user_code)
-        if not res.ok:
-            await self._send_dispatch_error(client_handler, res)
-            return
-        await self.async_send_text_to(
-            client_handler, f"You have subscribed to the room: {name}"
-        )
+        await self._send_dispatch_code(client_handler, res)
 
     async def _cmd_create_channel(self, client_handler, name: str):
         res = await self.dispatcher.add_channel(name, client_handler.user_code)
-        if not res.ok:
-            await self._send_dispatch_error(client_handler, res)
+        if not await self._send_dispatch_code(client_handler, res):
             return
-        await self.async_send_text_to(client_handler, f"Room {name} successfully created")
         await self._cmd_join_channel(client_handler, name)
 
     async def _cmd_direct(self, client_handler, code: str):
         res = await self.dispatcher.validate_direct_message(client_handler.user_code, code)
-        if not res.ok:
-            await self._send_dispatch_error(client_handler, res)
+        if not await self._send_dispatch_code(client_handler, res):
             return
         initiator_msg = make_system_message(
             chat=f"u/{code}",
@@ -99,17 +92,11 @@ class RelayBot(Bot):
 
     async def _cmd_claim_moderator(self, client_handler):
         res = await self.dispatcher.claim_moderator(client_handler.user_code)
-        if not res.ok:
-            await self._send_dispatch_error(client_handler, res)
-            return
-        await self.async_send_text_to(client_handler, "You are now a moderator")
+        await self._send_dispatch_code(client_handler, res)
 
     async def _cmd_verify_user(self, client_handler, code: str):
         res = await self.dispatcher.verify_user(client_handler.user_code, code)
-        if not res.ok:
-            await self._send_dispatch_error(client_handler, res)
-            return
-        await self.async_send_text_to(client_handler, f"User {code} is verified")
+        await self._send_dispatch_code(client_handler, res)
 
     def _make_message(self, text: str):
         return make_system_message(
