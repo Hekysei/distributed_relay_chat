@@ -100,6 +100,14 @@ class RelayBot(Bot):
     async def _cmd_verify_user(self, client_handler, code: str):
         res = await self.dispatcher.verify_user(client_handler.user_code, code)
         await self._send_dispatch_code(client_handler, res)
+        if not res.ok:
+            return
+        verified_msg = make_system_message(
+            chat=self.chat_name,
+            sender=self.bot_name,
+            text="You have been verified by a moderator",
+        )
+        await self.dispatcher.send_message(code, verified_msg)
 
     def _make_message(self, text: str):
         return make_system_message(
