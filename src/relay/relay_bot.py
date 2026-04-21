@@ -38,6 +38,16 @@ class RelayBot(Bot):
                 self._cmd_direct,
                 code_kwargs,
             ),
+            (
+                "/mod",
+                self._cmd_claim_moderator,
+                {},
+            ),
+            (
+                "/verify",
+                self._cmd_verify_user,
+                code_kwargs,
+            ),
         ]
         self.add_commands(CLIENT_COMMANDS)
 
@@ -62,7 +72,7 @@ class RelayBot(Bot):
         )
 
     async def _cmd_create_channel(self, client_handler, name: str):
-        res = await self.dispatcher.add_channel(name)
+        res = await self.dispatcher.add_channel(name, client_handler.user_code)
         if not res.ok:
             await self._send_dispatch_error(client_handler, res)
             return
@@ -86,6 +96,20 @@ class RelayBot(Bot):
         )
         await client_handler.send_message(initiator_msg)
         await self.dispatcher.send_message(code, recipient_msg)
+
+    async def _cmd_claim_moderator(self, client_handler):
+        res = await self.dispatcher.claim_moderator(client_handler.user_code)
+        if not res.ok:
+            await self._send_dispatch_error(client_handler, res)
+            return
+        await self.async_send_text_to(client_handler, "You are now a moderator")
+
+    async def _cmd_verify_user(self, client_handler, code: str):
+        res = await self.dispatcher.verify_user(client_handler.user_code, code)
+        if not res.ok:
+            await self._send_dispatch_error(client_handler, res)
+            return
+        await self.async_send_text_to(client_handler, f"User {code} is verified")
 
     def _make_message(self, text: str):
         return make_system_message(

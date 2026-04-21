@@ -17,7 +17,9 @@ class Dispatcher(DispatcherInterface):
         self.users_channels: dict[str, set[str]] = dict()
 
     ### ADD / REMOVE CHANNELS ###
-    async def add_channel(self, channel_name: str) -> DispatchResult:
+    async def add_channel(
+        self, channel_name: str, user_code: str | None = None
+    ) -> DispatchResult:
         if channel_name in self.channels:
             return DispatchResult(False, DispatchCode.CHANNEL_ALREADY_EXISTS, channel_name)
         self.channels[channel_name] = Channel(channel_name, self)
@@ -47,8 +49,11 @@ class Dispatcher(DispatcherInterface):
             self.users_funs.pop(user_code)
 
     ### SEND_MESSAGE ###
-    async def broadcast(self, sender_code: str, msg: Message):
+    async def broadcast(self, sender_code: str, msg: Message) -> DispatchResult:
+        if msg.chat not in self.channels:
+            return DispatchResult(False, DispatchCode.NO_SUCH_CHANNEL, msg.chat)
         await self.channels[msg.chat].send_message(sender_code, msg)
+        return DispatchResult(True, DispatchCode.BROADCAST_SENT)
 
     async def send_message(self, addressee, msg):
         await self.users_funs[addressee](msg)
@@ -82,6 +87,14 @@ class Dispatcher(DispatcherInterface):
         if recipient_code not in self.users_funs:
             return DispatchResult(False, DispatchCode.NO_SUCH_USER, recipient_code)
         return DispatchResult(True, DispatchCode.DIRECT_SENT)
+
+    async def claim_moderator(self, user_code: str) -> DispatchResult:
+        return DispatchResult(False, DispatchCode.ACCESS_DENIED, user_code)
+
+    async def verify_user(
+        self, moderator_code: str, target_user_code: str
+    ) -> DispatchResult:
+        return DispatchResult(False, DispatchCode.ACCESS_DENIED, moderator_code)
 
     ### SUBSCRIPTIONS ###
     async def subscribe(self, channel_name: str, user_code: str) -> DispatchResult:
