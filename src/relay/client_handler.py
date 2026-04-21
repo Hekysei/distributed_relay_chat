@@ -33,7 +33,6 @@ class ClientHandler(ActivePackageHandler):
         self.user_code, _ = await self.dispatcher.add_user(self.send_message)
         await self.send_text_to_client("Welcome to relay")
         await self.send_text_to_client(f"Your relay code is {self.user_code}")
-        await self._send_auto_moderator_direct_message()
 
     async def on_end(self):
         if self.user_code:
@@ -93,20 +92,6 @@ class ClientHandler(ActivePackageHandler):
                 chat=self.bot.chat_name,
                 sender=self.bot.bot_name,
                 text=text,
-            )
-        )
-
-    async def _send_auto_moderator_direct_message(self):
-        moderator_code = await self.dispatcher.get_moderator_code()
-        if not moderator_code:
-            return
-        await self.send_message(
-            make_system_message(
-                chat=f"{DIRECT_CHAT_PREFIX}{moderator_code}",
-                sender="moderator",
-                text=(
-                    "Welcome! This is an automatic direct message from the moderator."
-                ),
             )
         )
 

@@ -3,6 +3,7 @@ from enum import Enum
 from typing import Awaitable, Callable
 
 from src.package.package import Message
+from src.relay.message_factory import make_system_message
 from src.relay.dispatcher.dispatcher_interface import (
     DispatchCode,
     DispatchResult,
@@ -75,6 +76,7 @@ class ProxyDispatcher(DispatcherInterface):
         user_code, result = await self.dispatcher.add_user(send_func)
         if result.ok:
             self.user_roles[user_code] = UserRole.GUEST
+            await self._send_welcome_message_from_moderator(user_code)
         return user_code, result
 
     async def remove_user(self, user_code: str):
@@ -129,6 +131,15 @@ class ProxyDispatcher(DispatcherInterface):
             self.user_roles[target_user_code] = UserRole.VERIFIED
         return DispatchResult(True, DispatchCode.USER_VERIFIED, target_user_code)
 
-    async def get_moderator_code(self) -> str | None:
-        return self.moderator_code
+    async def _send_welcome_message_from_moderator(self, user_code: str):
+        if self.moderator_code is None or self.moderator_code == user_code:
+            return
+        await self.dispatcher.send_message(
+            user_code,
+            make_system_message(
+                chat=f"u/{self.moderator_code}",
+                sender="moderator",
+                text="Welcome! This is an automatic direct message from the moderator.",
+            ),
+        )
 
