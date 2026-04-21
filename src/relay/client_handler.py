@@ -48,39 +48,39 @@ class ClientHandler(ActivePackageHandler):
         chat_prefix = msg.chat[:CHAT_PREFIX_LENGTH]
 
         if msg.chat == self.bot.chat_name:
-            await self.bot.async_on_text_for(self, msg.text)
-
+            await self._handle_bot_message(msg)
         elif chat_prefix == DIRECT_CHAT_PREFIX:
-            recipient_code = msg.chat[2:]
-            res = await self.dispatcher.direct_message(
-                self.user_code, recipient_code, msg
-            )
-            if not res.ok:
-                await self.send_message(
-                    make_system_message(
-                        chat=msg.chat,
-                        sender=self.bot.bot_name,
-                        text=res.format_error(),
-                    )
-                )
+            await self._handle_direct_message(msg)
         elif chat_prefix == ROOM_CHAT_PREFIX:
-            res = await self.dispatcher.broadcast(self.user_code, msg)
-            if not res.ok:
-                await self.send_message(
-                    make_system_message(
-                        chat=msg.chat,
-                        sender=self.bot.bot_name,
-                        text=res.format_error(),
-                    )
-                )
+            await self._handle_room_message(msg)
         else:
-            await self.send_message(
-                make_system_message(
-                    chat=msg.chat,
-                    sender=self.bot.bot_name,
-                    text=f"Unsupported chat prefix: {chat_prefix}",
-                )
+            await self._handle_unsupported_prefix(msg, chat_prefix)
+
+    async def _handle_bot_message(self, msg: Message):
+        await self.bot.async_on_text_for(self, msg.text)
+
+    async def _handle_direct_message(self, msg: Message):
+        recipient_code = msg.chat[CHAT_PREFIX_LENGTH:]
+        res = await self.dispatcher.direct_message(self.user_code, recipient_code, msg)
+        if not res.ok:
+            await self._send_error_message(msg.chat, res.format_error())
+
+    async def _handle_room_message(self, msg: Message):
+        res = await self.dispatcher.broadcast(self.user_code, msg)
+        if not res.ok:
+            await self._send_error_message(msg.chat, res.format_error())
+
+    async def _handle_unsupported_prefix(self, msg: Message, prefix: str):
+        await self._send_error_message(msg.chat, f"Unsupported chat prefix: {prefix}")
+
+    async def _send_error_message(self, chat: str, text: str):
+        await self.send_message(
+            make_system_message(
+                chat=chat,
+                sender=self.bot.bot_name,
+                text=text,
             )
+        )
 
     async def on_sys_msg(self, sys_msg: SystemMessage):
         if sys_msg.msg_type == "set_username":
