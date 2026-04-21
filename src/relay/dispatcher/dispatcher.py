@@ -96,6 +96,11 @@ class Dispatcher(DispatcherInterface):
     ) -> DispatchResult:
         return DispatchResult(False, DispatchCode.ACCESS_DENIED, moderator_code)
 
+    async def direct_message_to_moderator(
+        self, sender_code: str, msg: Message
+    ) -> DispatchResult:
+        return DispatchResult(False, DispatchCode.ACCESS_DENIED, sender_code)
+
     ### SUBSCRIPTIONS ###
     async def subscribe(self, channel_name: str, user_code: str) -> DispatchResult:
         if channel_name not in self.channels:

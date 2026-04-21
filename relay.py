@@ -11,8 +11,9 @@ from src.relay.relay_bot import RelayBot
 class Relay:
     def __init__(self):
         self.server = Server()
-        self.dispatcher = ProxyDispatcher(Dispatcher())
-        self.bot = RelayBot(self.dispatcher)
+        self.dispatcher = Dispatcher()
+        self.proxy_dispatcher = ProxyDispatcher(self.dispatcher)
+        self.bot = RelayBot(self.proxy_dispatcher)
 
         self.server.on_connection_callback = self.start_handler
 
@@ -20,7 +21,7 @@ class Relay:
         await self.server.run()
 
     async def start_handler(self, connection_handler: ConnectionHandler):
-        client_handler = ClientHandler(self.dispatcher, connection_handler, self.bot)
+        client_handler = ClientHandler(self.proxy_dispatcher, connection_handler, self.bot)
         await client_handler.run()
 
 
