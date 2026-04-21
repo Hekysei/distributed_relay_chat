@@ -8,25 +8,25 @@ class Channel:
         self.dispatcher = dispatcher
         self.members: set[str] = set()
 
-    async def send_message(self, msg: Message):
-        for name in self.members:
-            if name != msg.sender:
-                await self.dispatcher.users_funs[name](msg)
+    async def send_message(self, sender_code: str, msg: Message):
+        for user_code in self.members:
+            if user_code != sender_code:
+                await self.dispatcher.users_funs[user_code](msg)
 
     async def send_text_to_self(self, text: str):
         await self.send_message(
+            "",
             Message(
                 chat=self.name,
                 sender="relay",
                 text=text,
-            ).set_timestamp_now()
+            ).set_timestamp_now(),
         )
 
-    async def subscribe(self, username: str):
-        self.members.add(username)
-        await self.send_text_to_self(f"{username} entered the room.")
+    async def subscribe(self, user_code: str):
+        self.members.add(user_code)
+        await self.send_text_to_self(f"user {user_code} entered the room.")
 
-    async def unsubscribe(self, username: str):
-        self.members.remove(username)
-        await self.send_text_to_self(f"{username} left the chat.")
-
+    async def unsubscribe(self, user_code: str):
+        self.members.remove(user_code)
+        await self.send_text_to_self(f"user {user_code} left the chat.")

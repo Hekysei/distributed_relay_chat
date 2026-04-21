@@ -9,11 +9,10 @@ from src.package.package import Message
 class DispatchCode(str, Enum):
     CHANNEL_CREATED = "Channel created"
     CHANNEL_ALREADY_EXISTS = "Room already exists"
-    USER_ADDED = "User verified"
-    USERNAME_TAKEN = "The name is already taken"
+    USER_ADDED = "User connected"
     SUBSCRIBED = "Subscribed to room"
     NO_SUCH_CHANNEL = "There is no room with name"
-    USER_NOT_VERIFIED = "User is not verified"
+    USER_NOT_CONNECTED = "User is not connected"
     NO_SUCH_USER = "User is offline or does not exist"
     DIRECT_SENT = "Direct message sent"
     CANNOT_DIRECT_SELF = "You cannot start direct chat with yourself"
@@ -35,7 +34,15 @@ class DispatcherInterface(ABC):
     users_funs: dict[str, Callable[[Message], Awaitable[None]]]
 
     @abstractmethod
-    async def broadcast(self, msg: Message):
+    async def add_channel(self, channel_name: str) -> DispatchResult:
+        raise NotImplementedError
+
+    @abstractmethod
+    async def remove_channel(self, channel_name: str):
+        raise NotImplementedError
+
+    @abstractmethod
+    async def broadcast(self, sender_code: str, msg: Message):
         raise NotImplementedError
 
     @abstractmethod
@@ -44,30 +51,30 @@ class DispatcherInterface(ABC):
 
     @abstractmethod
     async def add_user(
-        self, username: str, send_func: Callable[[Message], Awaitable[None]]
-    ) -> "DispatchResult":
+        self, send_func: Callable[[Message], Awaitable[None]]
+    ) -> tuple[str, "DispatchResult"]:
         raise NotImplementedError
 
     @abstractmethod
-    async def remove_user(self, username: str):
+    async def remove_user(self, user_code: str):
         raise NotImplementedError
 
     @abstractmethod
-    async def subscribe(self, channel_name: str, username: str) -> "DispatchResult":
+    async def subscribe(self, channel_name: str, user_code: str) -> "DispatchResult":
         raise NotImplementedError
 
     @abstractmethod
-    async def unsubscribe(self, channel_name: str, username: str):
+    async def unsubscribe(self, channel_name: str, user_code: str):
         raise NotImplementedError
 
     @abstractmethod
     async def direct_message(
-        self, sender_username: str, recipient_username: str, msg: Message
+        self, sender_code: str, recipient_code: str, msg: Message
     ) -> "DispatchResult":
         raise NotImplementedError
 
     @abstractmethod
     async def validate_direct_message(
-        self, sender_username: str, recipient_username: str
+        self, sender_code: str, recipient_code: str
     ) -> "DispatchResult":
         raise NotImplementedError
