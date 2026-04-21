@@ -1,5 +1,5 @@
 from src.connection_handler import ConnectionHandler
-from src.relay.dispatcher.dispatcher import Dispatcher
+from src.relay.dispatcher.dispatcher_interface import DispatcherInterface
 from src.relay.message_factory import make_system_message
 from src.package.package import Message, TimestampResponse, SystemMessage
 from src.package_handler.active_package_handler import ActivePackageHandler
@@ -9,7 +9,7 @@ from src.relay.relay_bot import RelayBot
 class ClientHandler(ActivePackageHandler):
     def __init__(
         self,
-        dispatcher: Dispatcher,
+        dispatcher: DispatcherInterface,
         connection_handler: ConnectionHandler,
         relay_bot: RelayBot,
     ):
@@ -58,7 +58,15 @@ class ClientHandler(ActivePackageHandler):
                     )
                 )
             return
-        await self.dispatcher.broadcast(self.user_code, msg)
+        res = await self.dispatcher.broadcast(self.user_code, msg)
+        if not res.ok:
+            await self.send_message(
+                make_system_message(
+                    chat=msg.chat,
+                    sender=self.bot.bot_name,
+                    text=res.format_error(),
+                )
+            )
 
     async def on_sys_msg(self, sys_msg: SystemMessage):
         if sys_msg.msg_type == "set_username":

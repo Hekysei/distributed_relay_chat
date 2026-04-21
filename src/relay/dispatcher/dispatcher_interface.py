@@ -15,7 +15,12 @@ class DispatchCode(str, Enum):
     USER_NOT_CONNECTED = "User is not connected"
     NO_SUCH_USER = "User is offline or does not exist"
     DIRECT_SENT = "Direct message sent"
+    BROADCAST_SENT = "Message sent to room"
     CANNOT_DIRECT_SELF = "You cannot start direct chat with yourself"
+    ACCESS_DENIED = "Access denied"
+    USER_VERIFIED = "User verified"
+    MODERATOR_GRANTED = "Moderator role granted"
+    MODERATOR_ALREADY_EXISTS = "Moderator already exists"
 
 
 @dataclass(frozen=True, slots=True)
@@ -34,7 +39,9 @@ class DispatcherInterface(ABC):
     users_funs: dict[str, Callable[[Message], Awaitable[None]]]
 
     @abstractmethod
-    async def add_channel(self, channel_name: str) -> DispatchResult:
+    async def add_channel(
+        self, channel_name: str, user_code: str | None = None
+    ) -> DispatchResult:
         raise NotImplementedError
 
     @abstractmethod
@@ -42,7 +49,7 @@ class DispatcherInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    async def broadcast(self, sender_code: str, msg: Message):
+    async def broadcast(self, sender_code: str, msg: Message) -> "DispatchResult":
         raise NotImplementedError
 
     @abstractmethod
@@ -76,5 +83,15 @@ class DispatcherInterface(ABC):
     @abstractmethod
     async def validate_direct_message(
         self, sender_code: str, recipient_code: str
+    ) -> "DispatchResult":
+        raise NotImplementedError
+
+    @abstractmethod
+    async def claim_moderator(self, user_code: str) -> "DispatchResult":
+        raise NotImplementedError
+
+    @abstractmethod
+    async def verify_user(
+        self, moderator_code: str, target_user_code: str
     ) -> "DispatchResult":
         raise NotImplementedError
