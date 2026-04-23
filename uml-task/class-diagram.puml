@@ -1,188 +1,239 @@
 @startuml
-!pragma layout smetana
+!pragma layout elk
 skinparam classAttributeIconSize 0
 skinparam shadowing false
-title distributed_relay_chat — UML диаграмма классов (по коду)
+title distributed_relay_chat — UML диаграмма классов
 
-package "Протокол (src.package)" as pkg {
+package "Пакеты и обработка" {
   abstract class Package {
     +type: str
     +to_json(): str
-    {static} from_json(json_str): Package
+    +from_json(json_str)
   }
   class Message {
-    +chat, sender, text: str
+    +chat: str
+    +sender: str
+    +text: str
     +message_id: int?
     +timestamp: datetime?
     +set_timestamp_now(): Message
   }
   class TimestampResponse {
-    {static} from_message(msg: Message): TimestampResponse
+    +chat: str
+    +message_id: int
+    +timestamp: datetime
+    +from_message(msg: Message): TimestampResponse
   }
   class SystemMessage {
-    +msg_type, body: str
+    +msg_type: str
+    +body: str
   }
+  abstract class PackageHandler {
+    +on_msg(msg): awaitable
+    +on_tsr(tsr): awaitable
+    +on_sys_msg(sys_msg): awaitable
+  }
+  class PackageFactory {
+    -_handlers: dict
+    +get_handler_and_instance(json_str)
+    +process_json(json_str): awaitable
+  }
+  class ActivePackageHandler {
+    +username: str
+    +send_username(): awaitable
+    +set_username(name): awaitable
+  }
+
   Package <|-- Message
   Package <|-- TimestampResponse
   Package <|-- SystemMessage
-
-  abstract class PackageFactory {
-    {static} _classes: dict
-    _handlers: dict
-    +get_handler_and_instance(json_str)
-    +process_json(json_str): void
-    +async_process_json(json_str): awaitable
-  }
-  class RelayPackageFactory
-  class APPClientPackageFactory
-  PackageFactory <|-- RelayPackageFactory
-  PackageFactory <|-- APPClientPackageFactory
+  PackageHandler <|-- ActivePackageHandler
+  ActivePackageHandler *-- PackageFactory
+  PackageFactory ..> PackageHandler
 }
 
-package "Релей (src.relay)" as relay {
-  class Relay {
-    -server: Server
-    -dispatcher: Dispatcher
-    +run(): awaitable
-    +start_handler(connection_handler): awaitable
+package "Сеть и сервер" {
+  class ConnectionHandler {
+    +ws
+    +package_factory: PackageFactory
+    +connect(ip, port): str
+    +run(): str
+    +send_message(msg): awaitable
+    +send_tsr(tsr): awaitable
+    +send_sys_message(sys_msg): awaitable
+    +disconnect(): awaitable
+    +is_connected(): bool
   }
   class Server {
-    -active_connections: set
+    +active_connections: set
     +on_connection_callback
     +handler_factory(ws): awaitable
     +run(): awaitable
   }
-  class ConnectionHandler {
-    -ws
-    +package_factory: PackageFactory
+  Server ..> ConnectionHandler : creates
+  ConnectionHandler o-- PackageFactory
+}
+
+package "Релей и диспетчер" {
+  class Relay {
+    -server: Server
+    -dispatcher: Dispatcher
+    -proxy_dispatcher: ProxyDispatcher
+    -bot: RelayBot
     +run(): awaitable
-    +send_message(msg): awaitable
-    +send_tsr(tsr): awaitable
+    +start_handler(connection_handler): awaitable
   }
+  enum DispatchCode
+  class DispatchResult {
+    +ok: bool
+    +code: DispatchCode
+    +params: str?
+    +format_error(): str
+  }
+  interface DispatcherInterface
   class Dispatcher {
-    -chanels: dict
-    -users: dict
-    +send_message(msg, sender_func): awaitable
-    +subscribe(...): awaitable
-    +create_channel(...): awaitable
-    +call(msg): awaitable
+    +channels: dict
+    +users_funs: dict
+    +users_channels: dict
   }
   class Channel {
-    -members_funcs: dict
-    +send_message(msg, sender_func): awaitable
-    +subscribe(username, send_func): void
+    +name: str
+    +members: set
+    +send_message(sender_code, msg): awaitable
+    +subscribe(user_code): awaitable
+    +unsubscribe(user_code): awaitable
+  }
+  enum UserRole
+  enum PermissionAction
+  class AccessRule {
+    +allowed_roles: frozenset
+  }
+  class ProxyDispatcher {
+    +user_roles: dict
+    +moderator_code: str?
+    +rules: dict
   }
   class ClientHandler {
-    +username: str
+    +dispatcher: DispatcherInterface
+    +bot: RelayBot
+    +user_code: str
+    +run(): awaitable
     +on_msg(msg): awaitable
     +on_sys_msg(sys_msg): awaitable
-    +send_text_to_client(text): awaitable
   }
+  class RelayBot
+
+  DispatchResult --> DispatchCode
+  DispatcherInterface <|.. Dispatcher
+  DispatcherInterface <|.. ProxyDispatcher
+  Dispatcher *-- Channel
+  ProxyDispatcher *-- AccessRule
+  ProxyDispatcher --> DispatcherInterface : wraps
+  AccessRule --> UserRole
+  ProxyDispatcher --> PermissionAction
+  ClientHandler --|> ActivePackageHandler
+  ClientHandler --> DispatcherInterface
+  ClientHandler *-- RelayBot
   Relay *-- Server
   Relay *-- Dispatcher
-  Server ..> ConnectionHandler : создаёт
-  ConnectionHandler o-- PackageFactory
-  Dispatcher *-- Channel
-  ClientHandler --> Dispatcher
-  ClientHandler --> ConnectionHandler
+  Relay *-- ProxyDispatcher
+  Relay *-- RelayBot
+  Relay ..> ClientHandler : creates
 }
 
-package "Клиент и сеть (src.client)" as cl {
-  class NetClient {
-    -ws: WebSocket
-    +package_factory: PackageFactory
-    +connect(ip, port): bool
-    +run(): Message
-    +send_message(msg): void
-  }
-  class Client {
-    +username: str
-    +chats: dict
-    +on_message_callback
-    +net_client: NetClient
-    +on_msg(msg): void
-    +on_ts_response(tsr): void
-    +send_user_text(chat, text): void
-  }
-  class APPClient
-  Client *-- NetClient
-  Client <|-- APPClient
-  NetClient o-- PackageFactory
-}
-
-package "Чаты и бот (src)" as chatbot {
+package "Клиент, чаты, команды, UI" {
   abstract class Chat {
     +name: str
     +messages: list
-    +add_message(msg): void
-    +send_message(msg): void
+    +add_message(msg): awaitable
+    +send_message(msg): awaitable
   }
   class RemoteChat {
-    -net_client: NetClient
-    -messages_wait_for_sync: dict
+    +messages_wait_for_sync: dict
+    +messages_sync_count: int
     +on_tsr(tsr): void
   }
   class ChatBot {
-    -bot: Bot
     +add_commands(commands): void
   }
   class Bot {
-    -command_router: CommandRouter
-    +send_message: Callable
-    +on_text(text): void
+    +chat_name: str
+    +bot_name: str
+    +command_router: CommandRouter
+    +async_send_text(text): awaitable
     +async_on_text(text): awaitable
   }
-  class CommandRouter {
-    -commands_dict: dict
-    +route(text): bool
-    +async_route(text): awaitable
-  }
   class FuncArgsPair {
-    +function: Callable
+    +function
     +kwargs: dict
   }
-  class RelayBot
-  class APPClientChatBot
+  class CommandRouter {
+    +commands_dict: dict
+    +add_command(command, function, args): void
+    +async_route(text): awaitable
+  }
+  class Client {
+    +run_loop
+    +start_connection_thread(ip, port): awaitable
+    +run_net(ip, port): awaitable
+    +disconnect(): awaitable
+  }
+  class ClientChatBot
+  class UserClient {
+    +chats: dict
+    +create_chat(chat_name): void
+    +on_msg(msg): awaitable
+    +on_tsr(tsr): awaitable
+    +send_user_text(chat, text): void
+  }
+  class APPClient {
+    +on_message_callback
+    +on_chat_added_callback
+    +on_chat_removed_callback
+  }
+  class TUI_Adapter
+  class APP
+
   Chat <|-- RemoteChat
   Chat <|-- ChatBot
   ChatBot *-- Bot
   Bot *-- CommandRouter
   CommandRouter *-- FuncArgsPair
   Bot <|-- RelayBot
-  ChatBot <|-- APPClientChatBot
-}
+  ChatBot <|-- ClientChatBot
 
-package "TUI (src.app)" as app {
-  class TUI_Adapter {
-    -client: Client
-    -input_buffer: str
-    -active_chat: str
-    +run(): void
-  }
-  class APP {
-    -client: APPClient
-    -tui_adapter: TUI_Adapter
-    +run(): void
-  }
+  Client --|> ActivePackageHandler
+  UserClient --|> Client
+  APPClient --|> UserClient
+  RemoteChat --> ConnectionHandler
+  UserClient *-- ClientChatBot
+  UserClient *-- Chat
   APP *-- APPClient
   APP *-- TUI_Adapter
+  TUI_Adapter --> UserClient
 }
 
-RelayPackageFactory ..> ClientHandler : маршрутизация входящих JSON
-APPClientPackageFactory ..> Client : маршрутизация входящих JSON
-ClientHandler *-- RelayBot
-RemoteChat o-- NetClient
-APPClient *-- APPClientChatBot
-TUI_Adapter o-- Client
-
-note bottom of Dispatcher
-  Каналы и подписчики:
-  pub/sub по имени чата
+note right of PackageFactory
+  Template Method:
+  process_json = parse type
+  -> build package
+  -> call handler
 end note
 
-note bottom of PackageFactory
-  Template Method + разбор JSON:
-  тип пакета → класс + обработчик
+note right of ProxyDispatcher
+  Decorator/Proxy:
+  wraps Dispatcher and adds
+  access control and roles
+end note
+
+note bottom of CommandRouter
+  Command pattern:
+  text command -> function + args
+end note
+
+note bottom of UserClient
+  Observer:
+  callbacks in APPClient notify TUI
 end note
 
 @enduml
