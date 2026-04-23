@@ -17,7 +17,7 @@
 
 Диаграмма соответствует текущей структуре кода (пакеты протокола, релей, клиент, чаты/бот, TUI). Подробности и паттерны — в [uml-task/README.md](uml-task/README.md).
 
-![Диаграмма классов](uml-task/class-diagram.png)
+![Диаграмма классов](uml-task/class-diagram.svg)
 
 - [PDF](uml-task/class-diagram.pdf)
 - [PlantUML](uml-task/class-diagram.puml)
