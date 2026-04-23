@@ -1,54 +1,72 @@
 # UML: distributed_relay_chat
 
-Диаграмма классов отражает структуру репозитория [Hekysei/distributed_relay_chat](https://github.com/Hekysei/distributed_relay_chat) (Python, WebSocket-релей и TUI-клиент).
+Диаграмма классов описывает проект [Hekysei/distributed_relay_chat](https://github.com/Hekysei/distributed_relay_chat): распределенный чат с WebSocket-релеем, комнатами, direct-чатами, модерацией и TUI-клиентом.
 
 ## Проект
 
-**Распределённый чат через релей:** сервер принимает WebSocket-подключения, маршрутизирует сообщения по именованным каналам (`Dispatcher` + `Channel`), клиент с curses-TUI подключается к релею, ведёт локальные представления чатов (`RemoteChat`, синхронизация `message_id` / `TimestampResponse`), служебный чат с ботом для команд (`/connect`, `/create`, `/join` и т.д.).
+**Распределенный relay-chat**:
+- сервер принимает подключения и создает сессию пользователя (`Server` + `ClientHandler`);
+- диспетчер маршрутизирует сообщения по комнатам и direct-каналам (`Dispatcher`, `Channel`);
+- прокси-диспетчер добавляет ролевой доступ и модерацию (`ProxyDispatcher`);
+- клиент хранит локальные чаты и синхронизирует timestamp сообщений (`UserClient`, `RemoteChat`, `TimestampResponse`);
+- команды пользователя обрабатываются через ботов (`ClientChatBot`, `RelayBot`).
 
-## Архитектурные решения
+## Принятые архитектурные решения
 
-1. **Слой пакетов (`Package`, `Message`, …)** — единый JSON-протокол; сериализация через dataclass + `to_json` / `from_json`, поле `type` выбирает класс при разборе.
+1. **Единый протокол пакетов**  
+   Все сетевые события сведены к пакетам (`Message`, `TimestampResponse`, `SystemMessage`) с базой `Package`. Это упрощает расширение протокола.
 
-2. **Фабрика пакетов (`PackageFactory`)** — таблица типов → классы плюс таблица типов → обработчики. На релее подставляется `RelayPackageFactory` (вход в `ClientHandler`), у клиента — `APPClientPackageFactory`. Так входящий JSON не размазывается по `if/else` по всему коду.
+2. **Центральная фабрика разбора пакетов**  
+   `PackageFactory` выбирает тип входного пакета и передает его в соответствующий handler (`PackageHandler`). Разбор JSON не размазан по бизнес-логике.
 
-3. **Pub/Sub на релее** — `Dispatcher` владеет `Channel`; в канале словарь «имя пользователя → функция отправки сообщения этому сокету». Это соответствует комментариям в коде про DI и pub/sub.
+3. **Разделение транспортного слоя и доменной логики**  
+   `ConnectionHandler` отвечает только за соединение/передачу, а вся логика маршрутизации и прав доступа находится в `Dispatcher`/`ProxyDispatcher`/`ClientHandler`.
 
-4. **Разделение синхронного клиента и асинхронного релея** — `NetClient` блокирует поток в `recv`; TUI обновляется колбэками. Это осознанный компромисс для CLI-прототипа (в README проекта отмечена проблема curses + два потока).
+4. **Proxy-слой для авторизации и модерации**  
+   `ProxyDispatcher` оборачивает `Dispatcher` и проверяет роли (`GUEST`/`VERIFIED`/`MODERATOR`) для операций создания комнат, подписки, отправки и верификации.
 
-5. **Бот и маршрутизация команд** — `Bot` + `CommandRouter` + `FuncArgsPair`: текст парсится в команду и именованные аргументы; на релее `RelayBot` регистрирует async-команды создания/входа в канал.
+5. **Двухконтурная клиентская модель**  
+   Отдельно выделены: сетевой клиентский обработчик (`Client`, `ConnectionHandler`) и доменная модель чатов (`Chat`, `RemoteChat`, `UserClient`), что упрощает поддержку UI.
 
-## Ответственности классов (кратко)
+6. **Командный интерфейс поверх чатов**  
+   `Bot` + `CommandRouter` позволяют использовать единый механизм текстовых команд как на клиенте, так и на стороне relay.
 
-| Компонент | Роль |
-|-----------|------|
-| `Package` / `Message` / `TimestampResponse` / `SystemMessage` | Модель сообщений протокола. |
-| `PackageFactory` (+ `Relay*`, `APPClient*`) | Разбор JSON и вызов нужного обработчика. |
-| `Relay`, `Server`, `ConnectionHandler` | Жизненный цикл WebSocket на стороне релея. |
-| `Dispatcher`, `Channel` | Каналы чата и рассылка подписчикам. |
-| `ClientHandler`, `RelayBot` | Логика одного подключения к релею и сервисный бот `r/relay`. |
-| `NetClient`, `Client`, `APPClient` | Сеть, чаты, специализация под приложение. |
-| `Chat`, `RemoteChat`, `ChatBot` | Абстракция чата; удалённый чат с отложенной подстановкой timestamp. |
-| `Bot`, `CommandRouter` | Команды в локальном/служебном чате. |
-| `APP`, `TUI_Adapter` | Точка входа и curses-интерфейс. |
+## Ответственности ключевых классов
 
-## Паттерны
+| Компонент | Ответственность |
+|-----------|-----------------|
+| `Package`, `Message`, `TimestampResponse`, `SystemMessage` | Транспортная модель пакетов протокола. |
+| `PackageFactory`, `PackageHandler`, `ActivePackageHandler` | Десериализация пакета и маршрутизация в обработчик. |
+| `ConnectionHandler`, `Server` | Управление соединением и серверным циклом. |
+| `DispatcherInterface`, `Dispatcher`, `Channel` | Маршрутизация сообщений, комнаты и подписки. |
+| `ProxyDispatcher`, `AccessRule`, `UserRole` | Роли, права доступа, модерация. |
+| `ClientHandler`, `RelayBot` | Логика сессии пользователя и relay-команд. |
+| `Client`, `UserClient`, `APPClient` | Клиентская сетевая и прикладная логика, callbacks для UI. |
+| `Chat`, `RemoteChat`, `ChatBot`, `ClientChatBot` | Хранение истории, отправка и командные чаты. |
+| `Bot`, `CommandRouter`, `FuncArgsPair` | Регистрация и выполнение команд. |
+| `TUI_Adapter`, `APP` | Адаптация клиентской логики к curses-интерфейсу и точка входа. |
 
-| Паттерн | Где проявляется |
-|---------|-----------------|
-| **Template Method** | `PackageFactory.process_json` / `async_process_json`: общий алгоритм «определить тип → `from_json` → вызвать handler». |
-| **Factory Method / абстрактная фабрика** | Подстановка `_handlers` в `RelayPackageFactory` и `APPClientPackageFactory`. |
-| **Strategy / Callable** | Отправка сообщения подписчику через `Callable[[Message]]` без жёсткой привязки к WebSocket-классу. |
-| **Adapter** | `TUI_Adapter` — интерфейс curses к `Client`. |
-| **Observer (упрощённо)** | Колбэки `on_message_callback`, `on_chat_added_callback` на `Client` для обновления UI. |
+## Использованные паттерны
 
-## Файлы
+| Паттерн | Где используется | Почему |
+|--------|-------------------|--------|
+| **Template Method** | `PackageFactory.process_json` | Общий алгоритм обработки входного пакета: определить тип -> создать объект -> вызвать handler. |
+| **Factory Method** | `Package.from_json`, `TimestampResponse.from_message`, `make_system_message` | Централизованное создание объектов сообщений и ответов. |
+| **Command** | `CommandRouter`, `FuncArgsPair`, `Bot`, `RelayBot`, `ClientChatBot` | Текстовая команда преобразуется в вызов конкретной функции с аргументами. |
+| **Decorator / Proxy** | `ProxyDispatcher` вокруг `DispatcherInterface` | Добавляет проверки прав и модерацию без изменения базового диспетчера. |
+| **Strategy** | `Dispatcher.users_funs` и callback-отправки (`Callable`) | Способ доставки сообщения инкапсулирован в передаваемую функцию. |
+| **Observer (упрощенный)** | `APPClient.on_message_callback`, `on_chat_added_callback`, `on_chat_removed_callback` | UI подписывается на события клиентской модели. |
+| **Adapter** | `TUI_Adapter` | Адаптирует модель клиента к интерфейсу curses. |
+| **Facade (легковесный)** | `Relay`, `APP` | Упрощенные точки входа, скрывающие внутреннюю композицию подсистем. |
 
-- `class-diagram.pdf` — экспорт диаграммы.
-- `class-diagram.puml` — исходник PlantUML (`!pragma layout smetana`, без Graphviz).
+## Артефакты
 
-Пересборка PDF (при наличии `plantuml.jar` и venv с `img2pdf`):
+- UML-диаграмма: `uml-task/class-diagram.puml`
+- Описание объектов: `uml-task/objects-overview.md`
+- Скрипт пересборки PDF: `uml-task/build-uml-pdf.sh`
+
+Пересборка PDF:
 
 ```bash
-java -jar plantuml.jar -tpng class-diagram.puml && img2pdf -o class-diagram.pdf class-diagram.png
+./uml-task/build-uml-pdf.sh
 ```
