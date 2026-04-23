@@ -1,21 +1,6 @@
-**dev**
 ## Распределённый релей чат
 Проект по дисциплине "Основы ИТ технологий".
-
-## TODO
-- Адекватно решить проблему curses и двух потоков
-
 <img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/f6aba8dc-c5b1-47d6-bfe7-25a1da112ffe" />
-
-
-### UML
-
-Диаграмма соответствует текущей структуре кода (пакеты протокола, релей, клиент, чаты/бот, TUI). Подробности и паттерны — в [uml-task/README.md](uml-task/README.md).
-
-![Диаграмма классов](uml-task/class-diagram.svg)
-
-- [PDF](uml-task/class-diagram.pdf)
-- [PlantUML](uml-task/class-diagram.puml)
 
 ## Установка и запуск
 
@@ -42,4 +27,17 @@
    ```bash
    python3 tui_client.py
    ```
+
+## TODO
+- Адекватно решить проблему curses и двух потоков
+
+
+
+### UML
+Подробности и паттерны — в [uml-task/README.md](uml-task/README.md).
+
+![Диаграмма классов](uml-task/class-diagram.svg)
+
+- [PDF](uml-task/class-diagram.pdf)
+- [PlantUML](uml-task/class-diagram.puml)
 
