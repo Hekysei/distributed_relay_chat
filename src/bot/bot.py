@@ -15,7 +15,7 @@ class Bot:
 
         self.send_message: Callable[[Message]] = send_message
 
-    def add_command(self, command: str, function: Callable[...], args: dict[str, str]):
+    def add_command(self, command: str, function: Callable, args: dict[str, str]):
         self.command_router.add_command(command, function, args)
 
     def add_commands(self, commands: list):

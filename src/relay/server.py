@@ -39,11 +39,13 @@ class Server:
             except Exception as e:
                 print("Can't set signal")
                 print(e)
-                return
-
-            await stop_future
-
-            await self.close_active_connections()
+                print("It looks like you are using Windows")
+            
+            try:
+                await stop_future
+            finally:
+                print("Closing active connections")
+                await self.close_active_connections()
 
     async def close_active_connections(self):
         if self.active_connections:

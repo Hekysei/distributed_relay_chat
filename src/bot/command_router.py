@@ -4,7 +4,7 @@ from typing import Callable
 
 @dataclass
 class FuncArgsPair:
-    function: Callable[...]
+    function: Callable
     kwargs: dict[str, str]
 
 
@@ -12,7 +12,7 @@ class CommandRouter:
     def __init__(self):
         self.commands_dict: dict[str, FuncArgsPair] = {}
 
-    def add_command(self, command: str, function: Callable[...], args: dict[str, str]):
+    def add_command(self, command: str, function: Callable, args: dict[str, str]):
         self.commands_dict[command] = FuncArgsPair(function, args)
 
     def route(self, text: str, *args):
