@@ -4,38 +4,14 @@ import signal
 
 from typing import Callable
 
-from src.package.package import Message, TimestampResponse, SystemMessage
-
-from src.package.package_factory import PackageFactory
-
-
-class ConnectionHandler:
-    def __init__(self, ws: websockets.ServerConnection):
-        self.ws = ws
-        self.package_factory: PackageFactory
-
-    async def run(self):
-        try:
-            async for data in self.ws:
-                await self.package_factory.async_process_json(data)
-        except Exception as e:
-            print(e)
-
-    async def send_message(self, msg: Message):
-        await self.ws.send(msg.to_json())
-
-    async def send_tsr(self, tsr: TimestampResponse):
-        await self.ws.send(tsr.to_json())
-
-    async def send_sys_message(self, sys_msg: SystemMessage):
-        await self.ws.send(sys_msg.to_json())
+from src.connection_handler import ConnectionHandler
 
 
 class Server:
     def __init__(self):
         self.active_connections: set[websockets.ServerConnection] = set()
 
-        self.on_connection_callback: Callable[[ConnectionHandler]]
+        self.on_connection_callback: Callable[[ConnectionHandler]] = lambda _: None
 
     async def handler_factory(self, ws: websockets.ServerConnection):
         print("Client connected")
@@ -43,11 +19,12 @@ class Server:
 
         connection_handler = ConnectionHandler(ws)
 
-        await self.on_connection_callback(connection_handler)
-
-        await ws.close()
-        self.active_connections.remove(ws)
-        print("Client disconnected")
+        try:
+            await self.on_connection_callback(connection_handler)
+        finally:
+            await ws.close()
+            self.active_connections.remove(ws)
+            print("Client disconnected")
 
     async def run(self):
         async with websockets.serve(self.handler_factory, "localhost", 1409):

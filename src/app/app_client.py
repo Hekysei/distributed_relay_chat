@@ -1,80 +1,66 @@
-from src.client.client import Client
-from src.chat import ChatBot
-from src.package.package_factory import PackageFactory
+from typing import Callable
 
-greetings = [
-    "Welcome!",
-    "Commands:",
-    "/c, /connect - connect to relay",
-    "/d - disconnect",
-]
+from src.client.user_client import UserClient
 
 
-class APPClientChatBot(ChatBot):
-    def __init__(self, client: Client):
-        super().__init__("c/client", "client")
-
-        CONNECT_ARGS = {"ip": "localhost", "port": "1409"}
-        CLIENT_COMMANDS = [
-            ("/connect", client.start_connection_thread, CONNECT_ARGS),
-            ("/c", client.start_connection_thread, CONNECT_ARGS),
-            ("/d", client.disconnect, {}),
-            (
-                "/name",
-                client.set_username,
-                {
-                    "name": "blank_name",
-                },
-            ),
-        ]
-        self.add_commands(CLIENT_COMMANDS)
-        for greet in greetings:
-            self.bot.send_text(greet)
-
-
-class APPClientPackageFactory(PackageFactory):
-    def __init__(self, client: Client):
-        self._handlers = {
-            "message_request": client.on_msg,
-            "timestamp_response": client.on_ts_response,
-            "system_message": client.on_sys_msg,
-        }
-
-
-class APPClient(Client):
+class APPClient(UserClient):
     def __init__(self):
-        super().__init__(APPClientPackageFactory(self))
-        self.chat_bot = APPClientChatBot(self)
-        self.add_chat(self.chat_bot)
+        self.on_message_callback: Callable[[]] = lambda: None
+        self.on_chat_added_callback: Callable[[]] = lambda: None
+        self.on_chat_removed_callback: Callable[[]] = lambda: None
 
-    def __send_text_to_user(self, text: str):
-        self.chat_bot.bot.send_text(text)
+        super().__init__()
 
-    def send_user_text(self, chat: str, text: str):
-        super().send_user_text(chat, text)
-        # if not res:
-        #     self.__send_text_to_user("No server")
-
-    def start_connection_thread(self, ip: str, port: str) -> bool:
-        res = super().start_connection_thread(ip, port)
-        if not res:
-            self.__send_text_to_user("Already connected")
-        # else:
-        #     self.__send_text_to_user(f"Start connecting to {ip}:{port}")
-        return res
-
-    def connect_to_relay(self, ip: str, port: str) -> bool:
-        res = super().connect_to_relay(ip, port)
-        if res:
-            self.__send_text_to_user("Connected")
-        else:
-            self.__send_text_to_user("Connection refused")
-        return res
-
-    def run_net_client(self):
-        super().run_net_client()
-        self.__send_text_to_user("Сonnection lost")
+    ### TODO сделать обработку чатов после отключения
+    async def run_net(self, ip, port):
+        await super().run_net(ip, port)
 
         for chat_name in list(self.chats.keys()):
             if chat_name != self.chat_bot.name:
                 self.remove_chat(chat_name)
+
+    ### CALLBACKS ###
+    def add_chat(self, *args, **kwargs):
+        super().add_chat(*args, **kwargs)
+        self.on_chat_added_callback()
+
+    def remove_chat(self, *args, **kwargs):
+        super().remove_chat(*args, **kwargs)
+        self.on_chat_removed_callback()
+
+    async def on_msg(self, *args, **kwargs):
+        await super().on_msg(*args, **kwargs)
+        self.on_message_callback()
+
+    async def send_user_message(self, *args, **kwargs):
+        await super().send_user_message(*args, **kwargs)
+        self.on_message_callback()
+
+    async def on_tsr(self, *args, **kwargs):
+        await super().on_tsr(*args, **kwargs)
+        self.on_message_callback()
+
+    ### ОПОВЕЩЕНИЕ ПОЛЬЗОВАТЕЛЯ ###
+    async def start_connection_thread(self, ip: str, port: str) -> bool:
+        res = await super().start_connection_thread(ip, port)
+        if not res:
+            await self.send_text_to_user("Already connected")
+        else:
+            await self.send_text_to_user(f"Start connecting to {ip}:{port}")
+        return res
+
+    async def connect(self, *args, **kwargs) -> str:
+        res = await super().connect(*args, **kwargs)
+        if res == "ok":
+            await self.send_text_to_user("Connected")
+        else:
+            await self.send_text_to_user("Connection refused")
+        return res
+
+    async def disconnect(self) -> bool:
+        res = await super().disconnect()
+        if res:
+            await self.send_text_to_user("Disconnected")
+        else:
+            await self.send_text_to_user("Already disconnected")
+        return res
