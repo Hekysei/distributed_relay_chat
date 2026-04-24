@@ -1,0 +1,75 @@
+import asyncio
+import websockets
+import signal
+
+from typing import Callable
+
+from src.package.package import Message, TimestampResponse, SystemMessage
+
+from src.package.package_factory import PackageFactory
+
+
+class ConnectionHandler:
+    def __init__(self, ws: websockets.ServerConnection):
+        self.ws = ws
+        self.package_factory: PackageFactory
+
+    async def run(self):
+        try:
+            async for data in self.ws:
+                await self.package_factory.async_process_json(data)
+        except Exception as e:
+            print(e)
+
+    async def send_message(self, msg: Message):
+        await self.ws.send(msg.to_json())
+
+    async def send_tsr(self, tsr: TimestampResponse):
+        await self.ws.send(tsr.to_json())
+
+    async def send_sys_message(self, sys_msg: SystemMessage):
+        await self.ws.send(sys_msg.to_json())
+
+
+class Server:
+    def __init__(self):
+        self.active_connections: set[websockets.ServerConnection] = set()
+
+        self.on_connection_callback: Callable[[ConnectionHandler]]
+
+    async def handler_factory(self, ws: websockets.ServerConnection):
+        print("Client connected")
+        self.active_connections.add(ws)
+
+        connection_handler = ConnectionHandler(ws)
+
+        await self.on_connection_callback(connection_handler)
+
+        await ws.close()
+        self.active_connections.remove(ws)
+        print("Client disconnected")
+
+    async def run(self):
+        async with websockets.serve(self.handler_factory, "localhost", 1409):
+            print("Server started. Press Ctrl+C to stop.")
+
+            loop = asyncio.get_running_loop()
+            stop_future = loop.create_future()
+
+            try:
+                loop.add_signal_handler(signal.SIGINT, stop_future.set_result, None)
+                loop.add_signal_handler(signal.SIGTERM, stop_future.set_result, None)
+            except Exception as e:
+                print("Can't set signal")
+                print(e)
+                return
+
+            await stop_future
+
+            await self.close_active_connections()
+
+    async def close_active_connections(self):
+        if self.active_connections:
+            print(f"Closing {len(self.active_connections)} active connections...")
+            close_tasks = [ws.close() for ws in self.active_connections]
+            await asyncio.gather(*close_tasks, return_exceptions=True)
