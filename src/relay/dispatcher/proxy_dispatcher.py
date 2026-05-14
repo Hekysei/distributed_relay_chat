@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Awaitable, Callable
 
-from src.package.package import Message
+from src.package.package import Message, SystemMessage
 from src.relay.message_factory import make_system_message
 from src.relay.dispatcher.dispatcher_interface import (
     DispatchCode,
@@ -82,6 +82,19 @@ class ProxyDispatcher(DispatcherInterface):
         return user_code, result
 
     async def remove_user(self, user_code: str):
+        mod = self.moderator_code
+        if (
+            mod is not None
+            and mod != user_code
+            and mod in self.users_funs
+        ):
+            await self.dispatcher.send_message(
+                mod,
+                SystemMessage(
+                    msg_type="client_disconnected",
+                    body=user_code,
+                ),
+            )
         self.user_roles.pop(user_code, None)
         if self.moderator_code == user_code:
             self.moderator_code = None
