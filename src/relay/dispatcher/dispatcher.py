@@ -110,7 +110,10 @@ class Dispatcher(DispatcherInterface):
 
     async def unsubscribe(self, channel_name: str, user_code: str, room_notice: str | None = None):
         if channel_name in self.channels:
-            await self.channels[channel_name].unsubscribe(user_code, room_notice)
+            channel = self.channels[channel_name]
+            await channel.unsubscribe(user_code, room_notice)
+            if not channel.members:
+                self.channels.pop(channel_name, None)
         if user_code in self.users_channels:
             self.users_channels[user_code].discard(channel_name)
 
