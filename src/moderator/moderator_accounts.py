@@ -6,7 +6,7 @@ from dataclasses import dataclass
 
 _ITERATIONS = 100_000
 
-_RESERVED = frozenset({"moderator", "relay", "blank_name"})
+_RESERVED = frozenset({"moderator", "relay"})
 
 
 @dataclass(frozen=True, slots=True)

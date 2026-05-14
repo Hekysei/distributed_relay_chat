@@ -18,7 +18,7 @@ class RelayBot(Bot):
         self.dispatcher = dispatcher
 
         name_kwargs = {
-            "name": "blank_name",
+            "name": "",
         }
         code_kwargs = {
             "code": "blank_code",

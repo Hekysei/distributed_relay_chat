@@ -24,7 +24,7 @@ class ClientChatBot(ChatBot):
                 "/name",
                 client.set_username,
                 {
-                    "name": "blank_name",
+                    "name": "",
                 },
             ),
         ]

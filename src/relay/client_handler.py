@@ -31,8 +31,8 @@ class ClientHandler(ActivePackageHandler):
         await self.on_end()
 
     async def on_start(self):
-        await self.send_text_to_client("Welcome to relay")
         self.user_code, _ = await self.dispatcher.add_user(self.send_message)
+        await self.send_text_to_client("Welcome to relay")
         await self.send_text_to_client(f"Your relay code is {self.user_code}")
 
     async def on_end(self):
@@ -41,6 +41,13 @@ class ClientHandler(ActivePackageHandler):
 
     ### HANDLERS ###
     async def on_msg(self, msg: Message):
+        declared = (msg.sender or "").strip()
+        if declared != (self.username or "").strip():
+            await self.send_text_to_client(
+                "The sender name in your message does not match your assigned username."
+            )
+            return
+
         msg.set_timestamp_now()
         msg.sender = self.username
 
@@ -104,7 +111,7 @@ class ClientHandler(ActivePackageHandler):
         )
 
     async def set_username(self, name: str):
-        if self.username != "blank_name":
+        if self.username:
             await self.send_text_to_client("Username cannot be changed.")
             return
         self.username = name

@@ -8,7 +8,7 @@ from src.package.package import SystemMessage
 class ActivePackageHandler(PackageHandler):
     def __init__(self, connection_handler: ConnectionHandler):
         super().__init__()
-        self.username = "blank_name"
+        self.username = ""
         self.connection_handler = connection_handler
         self.connection_handler.package_factory = PackageFactory(self)
 
@@ -22,7 +22,7 @@ class ActivePackageHandler(PackageHandler):
         )
 
     async def set_username(self, name: str):
-        if self.connection_handler.is_connected() and self.username != "blank_name":
+        if self.connection_handler.is_connected():
             return
         self.username = name
         if self.connection_handler.is_connected():
