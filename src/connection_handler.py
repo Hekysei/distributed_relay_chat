@@ -1,7 +1,6 @@
 import websockets
 
 from websockets.protocol import State
-from websockets.exceptions import ConnectionClosed
 from src.package.package import Message, SystemMessage, TimestampResponse
 
 from src.package_handler.package_factory import PackageFactory

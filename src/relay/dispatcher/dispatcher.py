@@ -1,3 +1,4 @@
+from dataclasses import replace
 from typing import Awaitable, Callable
 from uuid import uuid4
 
@@ -12,9 +13,9 @@ from src.relay.dispatcher.dispatcher_interface import (
 
 class Dispatcher(DispatcherInterface):
     def __init__(self):
-        self.channels: dict[str, Channel] = dict()
-        self.users_funs: dict[str, Callable[[Message], Awaitable[None]]] = dict()
-        self.users_channels: dict[str, set[str]] = dict()
+        self.channels: dict[str, Channel] = {}
+        self.users_funs: dict[str, Callable[[Message], Awaitable[None]]] = {}
+        self.users_channels: dict[str, set[str]] = {}
 
     ### ADD / REMOVE CHANNELS ###
     async def add_channel(
@@ -26,10 +27,12 @@ class Dispatcher(DispatcherInterface):
         return DispatchResult(True, DispatchCode.CHANNEL_CREATED)
 
     async def remove_channel(self, channel_name: str):
-        users = self.channels[channel_name].members
-        self.channels.pop(channel_name)
-        for username in users:
-            await self.unsubscribe(channel_name, username)
+        if channel_name not in self.channels:
+            return
+        members = list(self.channels[channel_name].members)
+        for user_code in members:
+            await self.unsubscribe(channel_name, user_code)
+        self.channels.pop(channel_name, None)
 
     ### ADD / REMOVE USER ###
     async def add_user(
@@ -55,7 +58,7 @@ class Dispatcher(DispatcherInterface):
         await self.channels[msg.chat].send_message(sender_code, msg)
         return DispatchResult(True, DispatchCode.BROADCAST_SENT)
 
-    async def send_message(self, addressee, msg):
+    async def send_message(self, addressee: str, msg: Message):
         await self.users_funs[addressee](msg)
 
     async def direct_message(
@@ -66,14 +69,7 @@ class Dispatcher(DispatcherInterface):
         )
         if not validation_result.ok:
             return validation_result
-        recipient_msg = Message(
-            chat=f"u/{sender_code}",
-            sender=msg.sender,
-            text=msg.text,
-            message_id=msg.message_id,
-            timestamp=msg.timestamp,
-            type=msg.type,
-        )
+        recipient_msg = replace(msg, chat=f"u/{sender_code}")
         await self.users_funs[recipient_code](recipient_msg)
         return DispatchResult(True, DispatchCode.DIRECT_SENT)
 

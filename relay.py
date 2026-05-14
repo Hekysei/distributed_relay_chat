@@ -2,11 +2,13 @@
 
 import asyncio
 
-from src.relay.server import Server, ConnectionHandler
+from src.connection_handler import ConnectionHandler
+from src.relay.server import Server
 from src.relay.dispatcher.dispatcher import Dispatcher
 from src.relay.dispatcher.proxy_dispatcher import ProxyDispatcher
 from src.relay.client_handler import ClientHandler
 from src.relay.relay_bot import RelayBot
+
 
 class Relay:
     def __init__(self):

@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from enum import Enum
 from typing import Awaitable, Callable
 
@@ -131,14 +131,7 @@ class ProxyDispatcher(DispatcherInterface):
             return DispatchResult(False, DispatchCode.NO_SUCH_USER, "moderator")
         if sender_code == self.moderator_code:
             return DispatchResult(False, DispatchCode.CANNOT_DIRECT_SELF, sender_code)
-        mapped_msg = Message(
-            chat=f"u/{self.moderator_code}",
-            sender=msg.sender,
-            text=msg.text,
-            message_id=msg.message_id,
-            timestamp=msg.timestamp,
-            type=msg.type,
-        )
+        mapped_msg = replace(msg, chat=f"u/{self.moderator_code}")
         return await self.dispatcher.direct_message(
             sender_code, self.moderator_code, mapped_msg
         )
@@ -191,14 +184,7 @@ class ProxyDispatcher(DispatcherInterface):
         )
         if not validation_result.ok:
             return validation_result
-        recipient_msg = Message(
-            chat=self.MODERATOR_CHAT_NAME,
-            sender=msg.sender,
-            text=msg.text,
-            message_id=msg.message_id,
-            timestamp=msg.timestamp,
-            type=msg.type,
-        )
+        recipient_msg = replace(msg, chat=self.MODERATOR_CHAT_NAME)
         await self.dispatcher.send_message(recipient_code, recipient_msg)
         return DispatchResult(True, DispatchCode.DIRECT_SENT)
 

@@ -40,7 +40,7 @@ class Server:
                 print("Can't set signal")
                 print(e)
                 print("It looks like you are using Windows")
-            
+
             try:
                 await stop_future
             finally:
