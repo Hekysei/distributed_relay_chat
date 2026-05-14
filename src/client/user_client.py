@@ -6,6 +6,7 @@ from src.client.client_chat_bot import ClientChatBot
 
 from typing import cast
 
+from src.limits import MAX_MESSAGE_TEXT_LENGTH
 from src.package.package import Message, SystemMessage, TimestampResponse
 from src.relay.dispatcher.dispatcher_interface import RoomSyncMsgType
 
@@ -56,6 +57,8 @@ class UserClient(Client):
         await self.chats[msg.chat].send_message(msg)
 
     def send_user_text(self, chat: str, text: str):
+        if len(text) > MAX_MESSAGE_TEXT_LENGTH:
+            return
         msg = Message(
             chat=chat,
             sender=self.username,

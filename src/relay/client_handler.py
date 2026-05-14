@@ -1,4 +1,5 @@
 from src.connection_handler import ConnectionHandler
+from src.limits import MAX_MESSAGE_TEXT_LENGTH
 from src.relay.dispatcher.dispatcher_interface import DispatcherInterface
 from src.relay.message_factory import make_system_message
 from src.package.package import Message, TimestampResponse, SystemMessage
@@ -52,6 +53,12 @@ class ClientHandler(ActivePackageHandler):
         if declared != username:
             await self.send_text_to_client(
                 "The sender name in your message does not match your assigned username."
+            )
+            return
+
+        if len(msg.text) > MAX_MESSAGE_TEXT_LENGTH:
+            await self.send_text_to_client(
+                f"Message text is too long (maximum {MAX_MESSAGE_TEXT_LENGTH} characters)."
             )
             return
 

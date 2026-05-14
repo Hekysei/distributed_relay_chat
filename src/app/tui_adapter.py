@@ -4,6 +4,7 @@ from threading import Lock
 from typing import Union
 
 from src.client.user_client import UserClient
+from src.limits import MAX_MESSAGE_TEXT_LENGTH
 
 mutex = Lock()
 
@@ -114,8 +115,9 @@ class TUI_Adapter:
                 self.backspace()
             elif c.isprintable() or c.isalpha():
                 # Если символ можно напечатать или он есть в алфавите
-                self.input_buffer += c
-                self.update_input()
+                if len(self.input_buffer) < MAX_MESSAGE_TEXT_LENGTH:
+                    self.input_buffer += c
+                    self.update_input()
 
     ### ОБРАБОТКА СОБЫТИЙ ###
     def backspace(self):

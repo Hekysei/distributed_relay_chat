@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from src.bot.bot import Bot
 from src.client.client import Client
 from src.moderator.moderator_accounts import ModeratorAccountStore
+from src.limits import MAX_MESSAGE_TEXT_LENGTH
 from src.package.package import Message, SystemMessage
 from src.relay.dispatcher.dispatcher_interface import DispatchCode
 
@@ -55,6 +56,8 @@ class ModeratorClient(Client):
         )
 
     async def _send_user_text(self, chat: str, text: str) -> None:
+        if len(text) > MAX_MESSAGE_TEXT_LENGTH:
+            return
         self._message_seq += 1
         msg = Message(
             chat=chat,
