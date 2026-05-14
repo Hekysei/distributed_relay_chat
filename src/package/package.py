@@ -7,7 +7,7 @@ import json
 # c/ - client
 # r/ - relay
 # u/ - user
-# e/ - erroe
+# e/ - error
 
 
 @dataclass(kw_only=True)
@@ -60,7 +60,7 @@ class TimestampResponse(Package):
     @classmethod
     def from_message(cls, msg: Message):
         if msg.timestamp is None or msg.message_id is None:
-            raise ValueError("В сообщении нет времени или id")
+            raise ValueError("message is missing timestamp or message_id")
         return cls(chat=msg.chat, message_id=msg.message_id, timestamp=msg.timestamp)
 
 

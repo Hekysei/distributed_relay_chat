@@ -17,40 +17,20 @@ class RelayBot(Bot):
         )
         self.dispatcher = dispatcher
 
-        name_kwargs = {
-            "name": "blank_name",
-        }
-        code_kwargs = {
-            "code": "blank_code",
-        }
-        CLIENT_COMMANDS = [
-            (
-                "/create",
-                self._cmd_create_channel,
-                name_kwargs,
-            ),
-            (
-                "/join",
-                self._cmd_join_channel,
-                name_kwargs,
-            ),
-            (
-                "/direct",
-                self._cmd_direct,
-                code_kwargs,
-            ),
-            (
-                "/mod",
-                self._cmd_claim_moderator,
-                {},
-            ),
-            (
-                "/verify",
-                self._cmd_verify_user,
-                code_kwargs,
-            ),
-        ]
-        self.add_commands(CLIENT_COMMANDS)
+        name_kw = {"name": ""}
+        code_kw = {"code": "blank_code"}
+        room_and_code_kw = {"name": "", "code": ""}
+        self.add_commands(
+            [
+                ("/create", self._cmd_create_channel, name_kw),
+                ("/join", self._cmd_join_channel, name_kw),
+                ("/leave", self._cmd_leave_channel, name_kw),
+                ("/direct", self._cmd_direct, code_kw),
+                ("/mod", self._cmd_claim_moderator, {}),
+                ("/verify", self._cmd_verify_user, code_kw),
+                ("/kick", self._cmd_kick_user, room_and_code_kw),
+            ]
+        )
 
     async def async_send_text_to(self, client_handler, text: str):
         await client_handler.send_message(self._make_message(text))
@@ -64,13 +44,46 @@ class RelayBot(Bot):
         await self.async_send_text_to(client_handler, dispatch_result.format_error())
         return dispatch_result.ok
 
+    async def _room_channel_or_reply(self, client_handler, name: str) -> str | None:
+        err, channel = self._parse_room_channel(name)
+        if err:
+            await self.async_send_text_to(client_handler, err)
+            return None
+        return channel
+
     async def _cmd_join_channel(self, client_handler, name: str):
-        channel_name = self._room_chat_name(name)
+        channel_name = await self._room_channel_or_reply(client_handler, name)
+        if not channel_name:
+            return
         res = await self.dispatcher.subscribe(channel_name, client_handler.user_code)
         await self._send_dispatch_code(client_handler, res)
 
+    async def _cmd_leave_channel(self, client_handler, name: str):
+        channel_name = await self._room_channel_or_reply(client_handler, name)
+        if not channel_name:
+            return
+        res = await self.dispatcher.leave_channel(channel_name, client_handler.user_code)
+        await self._send_dispatch_code(client_handler, res)
+
+    async def _cmd_kick_user(self, client_handler, name: str, code: str):
+        channel_name = await self._room_channel_or_reply(client_handler, name)
+        if not channel_name:
+            return
+        target = code.strip()
+        if not target:
+            await self.async_send_text_to(
+                client_handler, "Usage: /kick <room> <user relay code>"
+            )
+            return
+        res = await self.dispatcher.kick_from_channel(
+            client_handler.user_code, channel_name, target
+        )
+        await self._send_dispatch_code(client_handler, res)
+
     async def _cmd_create_channel(self, client_handler, name: str):
-        channel_name = self._room_chat_name(name)
+        channel_name = await self._room_channel_or_reply(client_handler, name)
+        if not channel_name:
+            return
         res = await self.dispatcher.add_channel(channel_name, client_handler.user_code)
         if not await self._send_dispatch_code(client_handler, res):
             return
@@ -116,7 +129,18 @@ class RelayBot(Bot):
             text=text,
         )
 
-    def _room_chat_name(self, name: str) -> str:
-        if name.startswith(ROOM_CHAT_PREFIX):
-            return name
-        return f"{ROOM_CHAT_PREFIX}{name}"
+    def _parse_room_channel(self, name: str) -> tuple[str | None, str | None]:
+        suffix = self._room_name_suffix(name)
+        if not suffix:
+            return "Room name cannot be empty.", None
+        if "/" in suffix:
+            return "Room name cannot contain '/'.", None
+        return None, f"{ROOM_CHAT_PREFIX}{suffix}"
+
+    def _room_name_suffix(self, name: str) -> str:
+        raw = name.strip()
+        if not raw:
+            return ""
+        if raw.startswith(ROOM_CHAT_PREFIX):
+            return raw[len(ROOM_CHAT_PREFIX) :].strip()
+        return raw

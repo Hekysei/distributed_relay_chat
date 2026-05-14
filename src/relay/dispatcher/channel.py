@@ -27,6 +27,9 @@ class Channel:
         self.members.add(user_code)
         await self.send_text_to_self(f"user {user_code} entered the room.")
 
-    async def unsubscribe(self, user_code: str):
+    async def unsubscribe(self, user_code: str, room_notice: str | None = None):
+        if user_code not in self.members:
+            return
         self.members.remove(user_code)
-        await self.send_text_to_self(f"user {user_code} left the chat.")
+        notice = room_notice or f"user {user_code} left the chat."
+        await self.send_text_to_self(notice)

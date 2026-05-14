@@ -26,7 +26,7 @@ class PackageFactory:
         pkg_type = data.get("type")
 
         if pkg_type not in self._handlers:
-            raise ValueError(f"Неизвестный тип пакета: {pkg_type}")
+            raise ValueError(f"Unknown package type: {pkg_type}")
 
         package_class: Type[Package] = TYPE_CLASS[pkg_type]
         return self._handlers[pkg_type], package_class.from_json(json_str)

@@ -36,7 +36,7 @@ class RemoteChat(Chat):
         super().__init__(name)
         self.net_client = net_client
 
-        self.messages_wait_for_sync: dict[int, Message] = dict()
+        self.messages_wait_for_sync: dict[int, Message] = {}
         self.messages_sync_count = 0
 
     async def send_message(self, msg: Message):

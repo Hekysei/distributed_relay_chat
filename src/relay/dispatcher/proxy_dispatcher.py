@@ -1,13 +1,14 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from enum import Enum
 from typing import Awaitable, Callable
 
-from src.package.package import Message
+from src.package.package import Message, SystemMessage
 from src.relay.message_factory import make_system_message
 from src.relay.dispatcher.dispatcher_interface import (
     DispatchCode,
     DispatchResult,
     DispatcherInterface,
+    RoomSyncMsgType,
 )
 
 
@@ -20,8 +21,10 @@ class UserRole(str, Enum):
 class PermissionAction(str, Enum):
     CREATE_CHANNEL = "create_channel"
     SUBSCRIBE_CHANNEL = "subscribe_channel"
+    LEAVE_CHANNEL = "leave_channel"
     BROADCAST = "broadcast"
     VERIFY_USER = "verify_user"
+    KICK_USER = "kick_user"
 
 
 @dataclass(frozen=True, slots=True)
@@ -49,8 +52,10 @@ class ProxyDispatcher(DispatcherInterface):
         return {
             PermissionAction.CREATE_CHANNEL: AccessRule(room_roles),
             PermissionAction.SUBSCRIBE_CHANNEL: AccessRule(room_roles),
+            PermissionAction.LEAVE_CHANNEL: AccessRule(room_roles),
             PermissionAction.BROADCAST: AccessRule(room_roles),
             PermissionAction.VERIFY_USER: AccessRule(frozenset({UserRole.MODERATOR})),
+            PermissionAction.KICK_USER: AccessRule(frozenset({UserRole.MODERATOR})),
         }
 
     def set_rule(self, action: PermissionAction, allowed_roles: set[UserRole]):
@@ -82,6 +87,19 @@ class ProxyDispatcher(DispatcherInterface):
         return user_code, result
 
     async def remove_user(self, user_code: str):
+        mod = self.moderator_code
+        if (
+            mod is not None
+            and mod != user_code
+            and mod in self.users_funs
+        ):
+            await self.dispatcher.send_message(
+                mod,
+                SystemMessage(
+                    msg_type="client_disconnected",
+                    body=user_code,
+                ),
+            )
         self.user_roles.pop(user_code, None)
         if self.moderator_code == user_code:
             self.moderator_code = None
@@ -118,14 +136,7 @@ class ProxyDispatcher(DispatcherInterface):
             return DispatchResult(False, DispatchCode.NO_SUCH_USER, "moderator")
         if sender_code == self.moderator_code:
             return DispatchResult(False, DispatchCode.CANNOT_DIRECT_SELF, sender_code)
-        mapped_msg = Message(
-            chat=f"u/{self.moderator_code}",
-            sender=msg.sender,
-            text=msg.text,
-            message_id=msg.message_id,
-            timestamp=msg.timestamp,
-            type=msg.type,
-        )
+        mapped_msg = replace(msg, chat=f"u/{self.moderator_code}")
         return await self.dispatcher.direct_message(
             sender_code, self.moderator_code, mapped_msg
         )
@@ -135,8 +146,42 @@ class ProxyDispatcher(DispatcherInterface):
             return DispatchResult(False, DispatchCode.ACCESS_DENIED, user_code)
         return await self.dispatcher.subscribe(channel_name, user_code)
 
-    async def unsubscribe(self, channel_name: str, user_code: str):
-        await self.dispatcher.unsubscribe(channel_name, user_code)
+    async def unsubscribe(
+        self, channel_name: str, user_code: str, room_notice: str | None = None
+    ):
+        await self.dispatcher.unsubscribe(channel_name, user_code, room_notice)
+
+    async def leave_channel(self, channel_name: str, user_code: str) -> DispatchResult:
+        if not self._has_access(PermissionAction.LEAVE_CHANNEL, user_code):
+            return DispatchResult(False, DispatchCode.ACCESS_DENIED, user_code)
+        return await self.dispatcher.leave_channel(channel_name, user_code)
+
+    async def kick_from_channel(
+        self, moderator_code: str, channel_name: str, target_user_code: str
+    ) -> DispatchResult:
+        if not self._has_access(PermissionAction.KICK_USER, moderator_code):
+            return DispatchResult(False, DispatchCode.ACCESS_DENIED, moderator_code)
+        if moderator_code == target_user_code:
+            return DispatchResult(False, DispatchCode.CANNOT_KICK_SELF)
+        if channel_name not in self.dispatcher.channels:
+            return DispatchResult(False, DispatchCode.NO_SUCH_CHANNEL, channel_name)
+        if target_user_code not in self.dispatcher.users_funs:
+            return DispatchResult(False, DispatchCode.NO_SUCH_USER, target_user_code)
+        channel = self.dispatcher.channels[channel_name]
+        if target_user_code not in channel.members:
+            return DispatchResult(False, DispatchCode.TARGET_NOT_IN_ROOM, channel_name)
+        room_notice = (
+            f"user {target_user_code} was removed from the room by a moderator."
+        )
+        await self.dispatcher.unsubscribe(channel_name, target_user_code, room_notice)
+        await self.dispatcher.send_message(
+            target_user_code,
+            SystemMessage(
+                msg_type=RoomSyncMsgType.REMOVED_FROM_CHANNEL,
+                body=channel_name,
+            ),
+        )
+        return DispatchResult(True, DispatchCode.USER_KICKED, target_user_code)
 
     async def claim_moderator(self, user_code: str) -> DispatchResult:
         if user_code not in self.user_roles:
@@ -154,6 +199,8 @@ class ProxyDispatcher(DispatcherInterface):
             return DispatchResult(False, DispatchCode.ACCESS_DENIED, moderator_code)
         if target_user_code not in self.user_roles:
             return DispatchResult(False, DispatchCode.NO_SUCH_USER, target_user_code)
+        if self.user_roles[target_user_code] == UserRole.VERIFIED:
+            return DispatchResult(False, DispatchCode.USER_ALREADY_VERIFIED, target_user_code)
         if self.user_roles[target_user_code] != UserRole.MODERATOR:
             self.user_roles[target_user_code] = UserRole.VERIFIED
         return DispatchResult(True, DispatchCode.USER_VERIFIED, target_user_code)
@@ -176,14 +223,7 @@ class ProxyDispatcher(DispatcherInterface):
         )
         if not validation_result.ok:
             return validation_result
-        recipient_msg = Message(
-            chat=self.MODERATOR_CHAT_NAME,
-            sender=msg.sender,
-            text=msg.text,
-            message_id=msg.message_id,
-            timestamp=msg.timestamp,
-            type=msg.type,
-        )
+        recipient_msg = replace(msg, chat=self.MODERATOR_CHAT_NAME)
         await self.dispatcher.send_message(recipient_code, recipient_msg)
         return DispatchResult(True, DispatchCode.DIRECT_SENT)
 

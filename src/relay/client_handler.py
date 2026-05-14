@@ -1,4 +1,5 @@
 from src.connection_handler import ConnectionHandler
+from src.limits import MAX_MESSAGE_TEXT_LENGTH
 from src.relay.dispatcher.dispatcher_interface import DispatcherInterface
 from src.relay.message_factory import make_system_message
 from src.package.package import Message, TimestampResponse, SystemMessage
@@ -31,8 +32,8 @@ class ClientHandler(ActivePackageHandler):
         await self.on_end()
 
     async def on_start(self):
-        await self.send_text_to_client("Welcome to relay")
         self.user_code, _ = await self.dispatcher.add_user(self.send_message)
+        await self.send_text_to_client("Welcome to relay")
         await self.send_text_to_client(f"Your relay code is {self.user_code}")
 
     async def on_end(self):
@@ -41,6 +42,26 @@ class ClientHandler(ActivePackageHandler):
 
     ### HANDLERS ###
     async def on_msg(self, msg: Message):
+        username = self.username.strip()
+        if not username:
+            await self.send_text_to_client(
+                "Your display name is not set. Set it on your client before sending messages."
+            )
+            return
+
+        declared = msg.sender.strip()
+        if declared != username:
+            await self.send_text_to_client(
+                "The sender name in your message does not match your assigned username."
+            )
+            return
+
+        if len(msg.text) > MAX_MESSAGE_TEXT_LENGTH:
+            await self.send_text_to_client(
+                f"Message text is too long (maximum {MAX_MESSAGE_TEXT_LENGTH} characters)."
+            )
+            return
+
         msg.set_timestamp_now()
         msg.sender = self.username
 
@@ -104,5 +125,14 @@ class ClientHandler(ActivePackageHandler):
         )
 
     async def set_username(self, name: str):
-        self.username = name
+        if self.username.strip():
+            await self.send_text_to_client("Username cannot be changed.")
+            return
+        chosen = name.strip()
+        if not chosen:
+            await self.send_text_to_client(
+                "Set a non-empty display name on your client before using the relay."
+            )
+            return
+        self.username = chosen
         await self.send_text_to_client(f"Your name is {self.username}")

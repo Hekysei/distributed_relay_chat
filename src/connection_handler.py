@@ -1,7 +1,6 @@
 import websockets
 
 from websockets.protocol import State
-from websockets.exceptions import ConnectionClosed
 from src.package.package import Message, SystemMessage, TimestampResponse
 
 from src.package_handler.package_factory import PackageFactory
@@ -17,7 +16,8 @@ class ConnectionHandler:
 
     async def connect(self, ip: str, port: str) -> str:
         try:
-            self.ws = await websockets.connect(f"ws://{ip}:{port}")
+            url = f"ws://{ip}:{port}"
+            self.ws = await websockets.connect(url)
             if not self.ws:
                 return "no ws"
             return "ok"

@@ -2,9 +2,6 @@ from src.package.package import Message, TimestampResponse, SystemMessage
 
 
 class PackageHandler:
-    def __init__(self):
-        pass
-
     async def on_msg(self, msg: Message):
         pass
 

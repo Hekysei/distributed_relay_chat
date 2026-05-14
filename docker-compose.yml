@@ -1,0 +1,21 @@
+services:
+  relay:
+    build: .
+    command: ["python", "relay.py", "--host", "0.0.0.0", "--port", "12021"]
+    ports:
+      - "12021:12021"
+    restart: unless-stopped
+
+  moderator:
+    build: .
+    command:
+      [
+        "sh",
+        "-c",
+        "sleep 3 && exec python moderator.py --host relay --port 12021",
+      ]
+    depends_on:
+      - relay
+    stdin_open: true
+    tty: true
+    restart: unless-stopped

@@ -26,9 +26,9 @@ class Server:
             self.active_connections.remove(ws)
             print("Client disconnected")
 
-    async def run(self):
-        async with websockets.serve(self.handler_factory, "localhost", 1409):
-            print("Server started. Press Ctrl+C to stop.")
+    async def run(self, host: str = "0.0.0.0", port: int = 12021):
+        async with websockets.serve(self.handler_factory, host, port):
+            print(f"Server started on ws://{host}:{port}. Press Ctrl+C to stop.")
 
             loop = asyncio.get_running_loop()
             stop_future = loop.create_future()
@@ -39,11 +39,13 @@ class Server:
             except Exception as e:
                 print("Can't set signal")
                 print(e)
-                return
+                print("It looks like you are using Windows")
 
-            await stop_future
-
-            await self.close_active_connections()
+            try:
+                await stop_future
+            finally:
+                print("Closing active connections")
+                await self.close_active_connections()
 
     async def close_active_connections(self):
         if self.active_connections:
