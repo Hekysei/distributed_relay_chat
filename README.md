@@ -28,6 +28,33 @@
    python3 tui_client.py
    ```
 
+## Docker
+
+Нужны установленный [Docker](https://docs.docker.com/engine/install/) и плагин Compose (часто поставляется вместе с Docker Desktop или пакетом `docker-compose`).
+
+Из корня репозитория:
+
+```bash
+docker compose up --build
+```
+
+Поднимутся два сервиса: **relay** (WebSocket на порту **12021**) и **moderator** (подключается к relay по внутреннему имени сервиса `relay`). Клиенты с вашей машины подключаются к адресу `ws://localhost:12021`.
+
+Запуск в фоне и просмотр логов:
+
+```bash
+docker compose up -d --build
+docker compose logs -f relay moderator
+```
+
+Остановка:
+
+```bash
+docker compose down
+```
+
+Если порт 12021 занят, измените проброс в `docker-compose.yml` (например `"12022:12021"`) и укажите клиентам внешний порт **12022**.
+
 ## TODO
 - Адекватно решить проблему curses и двух потоков
 
