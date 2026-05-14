@@ -1,2 +1,2 @@
 [tool.vercel]
-entrypoint = "relay.py:app"
+entrypoint = "relay.py"
