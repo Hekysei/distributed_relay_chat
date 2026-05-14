@@ -4,6 +4,7 @@ from src.bot.bot import Bot
 from src.client.client import Client
 from src.client.moderator_accounts import ModeratorAccountStore
 from src.package.package import Message, SystemMessage
+from src.relay.dispatcher.dispatcher_interface import DispatchCode
 
 RELAY_BOT_CHAT = "r/relay"
 USER_DIRECT_PREFIX = "u/"
@@ -20,7 +21,6 @@ class ModeratorClient(Client):
         super().__init__()
         self._message_seq = 0
         self._accounts = ModeratorAccountStore()
-        self._pending_verify_user: str | None = None
 
         async def _discard_bot_outgoing(_msg: Message) -> None:
             pass
@@ -67,8 +67,24 @@ class ModeratorClient(Client):
         await self._send_user_text(f"{USER_DIRECT_PREFIX}{relay_user_code}", text)
 
     async def _request_verify(self, relay_user_code: str) -> None:
-        self._pending_verify_user = relay_user_code
         await self._send_user_text(RELAY_BOT_CHAT, f"/verify {relay_user_code}")
+
+    @staticmethod
+    def _relay_target_user_code(relay_line: str) -> str | None:
+        """Parse relay bot lines shaped like DispatchResult.format_error (code: params)."""
+        if ": " not in relay_line:
+            return None
+        head, tail = relay_line.split(": ", 1)
+        tail = tail.strip()
+        if not tail:
+            return None
+        if head in (
+            DispatchCode.USER_VERIFIED.value,
+            DispatchCode.USER_ALREADY_VERIFIED.value,
+            DispatchCode.NO_SUCH_USER.value,
+        ):
+            return tail
+        return None
 
     async def _cmd_register(
         self, ctx: ModerationContext, password1: str, password2: str
@@ -132,12 +148,12 @@ class ModeratorClient(Client):
         line = msg.text.replace("\n", " ").strip()
         print(f"[{msg.chat}] {msg.sender}: {line}")
 
-        if msg.chat == RELAY_BOT_CHAT and self._pending_verify_user:
-            target = self._pending_verify_user
-            self._pending_verify_user = None
-            await self._notify_relay_user(target, f"[relay] {msg.text}")
-            if not msg.text.startswith("User verified"):
-                self._accounts.clear_relay_user(target)
+        if msg.chat == RELAY_BOT_CHAT:
+            target = self._relay_target_user_code(msg.text.strip())
+            if target:
+                await self._notify_relay_user(target, f"[relay] {msg.text}")
+                if not msg.text.startswith(DispatchCode.USER_VERIFIED.value):
+                    self._accounts.clear_relay_user(target)
             return
 
         if not msg.chat.startswith(USER_DIRECT_PREFIX):
