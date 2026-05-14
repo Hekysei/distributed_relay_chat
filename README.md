@@ -96,13 +96,3 @@ docker compose down
 
 ## TODO
 - Адекватно решить проблему curses и двух потоков
-
-
-
-### UML
-Подробности и паттерны — в [uml-task/README.md](uml-task/README.md).
-
-![Диаграмма классов](uml-task/class-diagram.svg)
-
-- [PDF](uml-task/class-diagram.pdf)
-- [PlantUML](uml-task/class-diagram.puml)
