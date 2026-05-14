@@ -50,6 +50,7 @@ class ModeratorClient(Client):
             "/register <password> <password> if the name is new, "
             "/login <password> if the name is already registered. "
             "They must set their display name on the client first. "
+            "In r/relay use /kick <room> <user code> to remove someone from a room. "
             "Relay notifies this process when a client disconnects (client_disconnected)."
         )
 

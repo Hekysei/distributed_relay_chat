@@ -4,6 +4,7 @@ from typing import Awaitable, Callable
 
 from src.package.package import Message, SystemMessage
 from src.relay.message_factory import make_system_message
+from src.relay.relay_bot import RELAY_CHAT_NAME
 from src.relay.dispatcher.dispatcher_interface import (
     DispatchCode,
     DispatchResult,
@@ -20,8 +21,10 @@ class UserRole(str, Enum):
 class PermissionAction(str, Enum):
     CREATE_CHANNEL = "create_channel"
     SUBSCRIBE_CHANNEL = "subscribe_channel"
+    LEAVE_CHANNEL = "leave_channel"
     BROADCAST = "broadcast"
     VERIFY_USER = "verify_user"
+    KICK_USER = "kick_user"
 
 
 @dataclass(frozen=True, slots=True)
@@ -49,8 +52,10 @@ class ProxyDispatcher(DispatcherInterface):
         return {
             PermissionAction.CREATE_CHANNEL: AccessRule(room_roles),
             PermissionAction.SUBSCRIBE_CHANNEL: AccessRule(room_roles),
+            PermissionAction.LEAVE_CHANNEL: AccessRule(room_roles),
             PermissionAction.BROADCAST: AccessRule(room_roles),
             PermissionAction.VERIFY_USER: AccessRule(frozenset({UserRole.MODERATOR})),
+            PermissionAction.KICK_USER: AccessRule(frozenset({UserRole.MODERATOR})),
         }
 
     def set_rule(self, action: PermissionAction, allowed_roles: set[UserRole]):
@@ -141,8 +146,43 @@ class ProxyDispatcher(DispatcherInterface):
             return DispatchResult(False, DispatchCode.ACCESS_DENIED, user_code)
         return await self.dispatcher.subscribe(channel_name, user_code)
 
-    async def unsubscribe(self, channel_name: str, user_code: str):
-        await self.dispatcher.unsubscribe(channel_name, user_code)
+    async def unsubscribe(
+        self, channel_name: str, user_code: str, room_notice: str | None = None
+    ):
+        await self.dispatcher.unsubscribe(channel_name, user_code, room_notice)
+
+    async def leave_channel(self, channel_name: str, user_code: str) -> DispatchResult:
+        if not self._has_access(PermissionAction.LEAVE_CHANNEL, user_code):
+            return DispatchResult(False, DispatchCode.ACCESS_DENIED, user_code)
+        return await self.dispatcher.leave_channel(channel_name, user_code)
+
+    async def kick_from_channel(
+        self, moderator_code: str, channel_name: str, target_user_code: str
+    ) -> DispatchResult:
+        if not self._has_access(PermissionAction.KICK_USER, moderator_code):
+            return DispatchResult(False, DispatchCode.ACCESS_DENIED, moderator_code)
+        if moderator_code == target_user_code:
+            return DispatchResult(False, DispatchCode.CANNOT_KICK_SELF)
+        if channel_name not in self.dispatcher.channels:
+            return DispatchResult(False, DispatchCode.NO_SUCH_CHANNEL, channel_name)
+        if target_user_code not in self.dispatcher.users_funs:
+            return DispatchResult(False, DispatchCode.NO_SUCH_USER, target_user_code)
+        channel = self.dispatcher.channels[channel_name]
+        if target_user_code not in channel.members:
+            return DispatchResult(False, DispatchCode.TARGET_NOT_IN_ROOM, channel_name)
+        room_notice = (
+            f"user {target_user_code} was removed from the room by a moderator."
+        )
+        await self.dispatcher.unsubscribe(channel_name, target_user_code, room_notice)
+        await self.dispatcher.send_message(
+            target_user_code,
+            make_system_message(
+                chat=RELAY_CHAT_NAME,
+                sender="relay",
+                text=f"You were removed from {channel_name} by a moderator.",
+            ),
+        )
+        return DispatchResult(True, DispatchCode.USER_KICKED, target_user_code)
 
     async def claim_moderator(self, user_code: str) -> DispatchResult:
         if user_code not in self.user_roles:

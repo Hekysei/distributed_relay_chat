@@ -19,13 +19,16 @@ class RelayBot(Bot):
 
         name_kw = {"name": ""}
         code_kw = {"code": "blank_code"}
+        room_and_code_kw = {"name": "", "code": ""}
         self.add_commands(
             [
                 ("/create", self._cmd_create_channel, name_kw),
                 ("/join", self._cmd_join_channel, name_kw),
+                ("/leave", self._cmd_leave_channel, name_kw),
                 ("/direct", self._cmd_direct, code_kw),
                 ("/mod", self._cmd_claim_moderator, {}),
                 ("/verify", self._cmd_verify_user, code_kw),
+                ("/kick", self._cmd_kick_user, room_and_code_kw),
             ]
         )
 
@@ -53,6 +56,28 @@ class RelayBot(Bot):
         if not channel_name:
             return
         res = await self.dispatcher.subscribe(channel_name, client_handler.user_code)
+        await self._send_dispatch_code(client_handler, res)
+
+    async def _cmd_leave_channel(self, client_handler, name: str):
+        channel_name = await self._room_channel_or_reply(client_handler, name)
+        if not channel_name:
+            return
+        res = await self.dispatcher.leave_channel(channel_name, client_handler.user_code)
+        await self._send_dispatch_code(client_handler, res)
+
+    async def _cmd_kick_user(self, client_handler, name: str, code: str):
+        channel_name = await self._room_channel_or_reply(client_handler, name)
+        if not channel_name:
+            return
+        target = code.strip()
+        if not target:
+            await self.async_send_text_to(
+                client_handler, "Usage: /kick <room> <user relay code>"
+            )
+            return
+        res = await self.dispatcher.kick_from_channel(
+            client_handler.user_code, channel_name, target
+        )
         await self._send_dispatch_code(client_handler, res)
 
     async def _cmd_create_channel(self, client_handler, name: str):

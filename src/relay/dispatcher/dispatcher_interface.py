@@ -22,6 +22,11 @@ class DispatchCode(str, Enum):
     USER_ALREADY_VERIFIED = "User already verified"
     MODERATOR_GRANTED = "Moderator role granted"
     MODERATOR_ALREADY_EXISTS = "Moderator already exists"
+    LEFT_ROOM = "Left room"
+    NOT_IN_ROOM = "You are not in that room"
+    USER_KICKED = "User removed from room"
+    CANNOT_KICK_SELF = "Use /leave to exit a room; moderators cannot kick themselves"
+    TARGET_NOT_IN_ROOM = "That user is not in the room"
 
 
 @dataclass(frozen=True, slots=True)
@@ -72,7 +77,19 @@ class DispatcherInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    async def unsubscribe(self, channel_name: str, user_code: str):
+    async def unsubscribe(
+        self, channel_name: str, user_code: str, room_notice: str | None = None
+    ):
+        raise NotImplementedError
+
+    @abstractmethod
+    async def leave_channel(self, channel_name: str, user_code: str) -> "DispatchResult":
+        raise NotImplementedError
+
+    @abstractmethod
+    async def kick_from_channel(
+        self, moderator_code: str, channel_name: str, target_user_code: str
+    ) -> "DispatchResult":
         raise NotImplementedError
 
     @abstractmethod

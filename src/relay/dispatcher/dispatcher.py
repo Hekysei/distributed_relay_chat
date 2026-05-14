@@ -31,7 +31,7 @@ class Dispatcher(DispatcherInterface):
             return
         members = list(self.channels[channel_name].members)
         for user_code in members:
-            await self.unsubscribe(channel_name, user_code)
+            await self.unsubscribe(channel_name, user_code, None)
         self.channels.pop(channel_name, None)
 
     ### ADD / REMOVE USER ###
@@ -48,7 +48,7 @@ class Dispatcher(DispatcherInterface):
             channels = self.users_channels[user_code]
             self.users_channels.pop(user_code)
             for channel_name in channels:
-                await self.unsubscribe(channel_name, user_code)
+                await self.unsubscribe(channel_name, user_code, None)
             self.users_funs.pop(user_code)
 
     ### SEND_MESSAGE ###
@@ -107,11 +107,26 @@ class Dispatcher(DispatcherInterface):
         self.users_channels[user_code].add(channel_name)
         return DispatchResult(True, DispatchCode.SUBSCRIBED)
 
-    async def unsubscribe(self, channel_name: str, user_code: str):
+    async def unsubscribe(self, channel_name: str, user_code: str, room_notice: str | None = None):
         if channel_name in self.channels:
-            await self.channels[channel_name].unsubscribe(user_code)
+            await self.channels[channel_name].unsubscribe(user_code, room_notice)
         if user_code in self.users_channels:
-            self.users_channels[user_code].remove(channel_name)
+            self.users_channels[user_code].discard(channel_name)
+
+    async def leave_channel(self, channel_name: str, user_code: str) -> DispatchResult:
+        if channel_name not in self.channels:
+            return DispatchResult(False, DispatchCode.NO_SUCH_CHANNEL, channel_name)
+        if user_code not in self.users_channels:
+            return DispatchResult(False, DispatchCode.USER_NOT_CONNECTED, user_code)
+        if user_code not in self.channels[channel_name].members:
+            return DispatchResult(False, DispatchCode.NOT_IN_ROOM, channel_name)
+        await self.unsubscribe(channel_name, user_code, None)
+        return DispatchResult(True, DispatchCode.LEFT_ROOM, channel_name)
+
+    async def kick_from_channel(
+        self, moderator_code: str, channel_name: str, target_user_code: str
+    ) -> DispatchResult:
+        return DispatchResult(False, DispatchCode.ACCESS_DENIED, moderator_code)
 
     def _make_unique_user_code(self) -> str:
         while True:
