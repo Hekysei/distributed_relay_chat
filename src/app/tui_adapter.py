@@ -8,6 +8,58 @@ from src.client.user_client import UserClient
 mutex = Lock()
 
 
+def _wrap_message_lines(prefix: str, text: str, width: int) -> list[str]:
+    """Разбивает текст сообщения на строки шириной не больше width.
+
+    Перенос по словам (слова из body через split()). Слишком длинное слово
+    обрезается; остаток слова переносится на следующие строки по width.
+    """
+    if width <= 0:
+        return []
+
+    words = text.split()
+    lines: list[str] = []
+
+    def take_body_line(cap: int) -> str:
+        nonlocal words
+        if cap <= 0:
+            return ""
+        parts: list[str] = []
+        used = 0
+        while words:
+            w = words[0]
+            add = len(w) if not parts else 1 + len(w)
+            if used + add <= cap:
+                parts.append(words.pop(0))
+                used += add
+            elif not parts:
+                chunk = w[:cap]
+                if len(w) > cap:
+                    words[0] = w[cap:]
+                else:
+                    words.pop(0)
+                return chunk
+            else:
+                break
+        return " ".join(parts)
+
+    first_cap = max(0, width - len(prefix))
+    if len(prefix) > width:
+        lines.append(prefix[:width])
+        rest_prefix = prefix[width:]
+        for i in range(0, len(rest_prefix), width):
+            lines.append(rest_prefix[i : i + width])
+        while words:
+            lines.append(take_body_line(width))
+        return lines
+
+    first_body = take_body_line(first_cap)
+    lines.append(prefix + first_body)
+    while words:
+        lines.append(take_body_line(width))
+    return lines
+
+
 class TUI_Adapter:
     def __init__(self, client: UserClient):
         self.stdscr: curses.window
@@ -135,10 +187,15 @@ class TUI_Adapter:
                     timestamp = "no__time"
                     if msg.timestamp:
                         timestamp = msg.timestamp.strftime("%H:%M:%S")
-                    row = f"[{timestamp}] {msg.sender}: {msg.text}"
-                    self.msg_win.insstr(i, 0, row[:width])
-                    i -= 1
-                    if i == -1:
+                    prefix = f"[{timestamp}] {msg.sender}: "
+                    for row in reversed(
+                        _wrap_message_lines(prefix, msg.text, width)
+                    ):
+                        if i < 0:
+                            break
+                        self.msg_win.insstr(i, 0, row[:width])
+                        i -= 1
+                    if i < 0:
                         break
                 self.msg_win.refresh()
 
