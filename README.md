@@ -50,6 +50,8 @@ python3 tui_client.py
    python3 scripts/build_tui.py --onedir
    ```
 
+   Сборка **Linux и Windows в GitHub Actions** в одну папку (`dist-cross-ci/`, файлы `tui_client-linux` и `tui_client-windows.exe`): `./scripts/build-tui-ci-all.sh` (нужны `gh` и `gh auth login`, workflow `build-tui-linux.yml` и `build-tui-windows.yml` должны быть в ветке по умолчанию на GitHub).
+
 ## Релей
 
 ### Запуск через Python

@@ -3,6 +3,7 @@ __pycache__/
 
 build/
 dist/
+dist-cross-ci/
 *.spec
 
 .~lock.*
