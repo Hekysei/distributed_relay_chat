@@ -16,7 +16,6 @@
    source venv/bin/activate   # или venv\Scripts\activate для Windows
    pip install -r requirements.txt
    ```
-   **Если вы используете Windows, убедитесь, что пакет windows-curses был установлен (он добавлен в requirements.txt).**
 
 3. Запустите сервер (релей):
    ```bash
