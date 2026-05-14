@@ -65,12 +65,18 @@ class RelayBot(Bot):
         return dispatch_result.ok
 
     async def _cmd_join_channel(self, client_handler, name: str):
-        channel_name = self._room_chat_name(name)
+        err, channel_name = self._parse_room_channel(name)
+        if err:
+            await self.async_send_text_to(client_handler, err)
+            return
         res = await self.dispatcher.subscribe(channel_name, client_handler.user_code)
         await self._send_dispatch_code(client_handler, res)
 
     async def _cmd_create_channel(self, client_handler, name: str):
-        channel_name = self._room_chat_name(name)
+        err, channel_name = self._parse_room_channel(name)
+        if err:
+            await self.async_send_text_to(client_handler, err)
+            return
         res = await self.dispatcher.add_channel(channel_name, client_handler.user_code)
         if not await self._send_dispatch_code(client_handler, res):
             return
@@ -116,7 +122,18 @@ class RelayBot(Bot):
             text=text,
         )
 
-    def _room_chat_name(self, name: str) -> str:
-        if name.startswith(ROOM_CHAT_PREFIX):
-            return name
-        return f"{ROOM_CHAT_PREFIX}{name}"
+    def _parse_room_channel(self, name: str) -> tuple[str | None, str | None]:
+        suffix = self._room_name_suffix(name)
+        if not suffix:
+            return "Room name cannot be empty.", None
+        if "/" in suffix:
+            return "Room name cannot contain '/'.", None
+        return None, f"{ROOM_CHAT_PREFIX}{suffix}"
+
+    def _room_name_suffix(self, name: str) -> str:
+        raw = name.strip()
+        if not raw:
+            return ""
+        if raw.startswith(ROOM_CHAT_PREFIX):
+            return raw[len(ROOM_CHAT_PREFIX) :].strip()
+        return raw
