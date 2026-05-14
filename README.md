@@ -62,6 +62,16 @@ python3 relay.py
 
 По умолчанию релей слушает `0.0.0.0:12021`. Другой адрес и порт: `python3 relay.py --host 127.0.0.1 --port 12022` (порт должен совпадать с тем, что указывают клиент и при необходимости `moderator.py`).
 
+### Релей и модератор через скрипт (без Docker)
+
+Тот же сценарий, что и `docker compose up` (релей, пауза, затем модератор в текущем терминале), но локально через Python:
+
+```bash
+python3 scripts/run_relay_and_moderator.py
+```
+
+Опции: `--relay-host`, `--port`, `--moderator-host`, `--startup-delay` — см. `python3 scripts/run_relay_and_moderator.py --help`. Модератор по умолчанию подключается к `localhost`; порт должен совпадать с релеем.
+
 ### Запустить Docker
 
 Нужны [Docker](https://docs.docker.com/engine/install/) и Compose.
