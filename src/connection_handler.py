@@ -18,7 +18,6 @@ class ConnectionHandler:
     async def connect(self, ip: str, port: str) -> str:
         try:
             url = f"ws://{ip}:{port}"
-            # url = "ws://85.215.229.230:12021/ws/heky"
             self.ws = await websockets.connect(url)
             if not self.ws:
                 return "no ws"

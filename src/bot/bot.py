@@ -1,9 +1,8 @@
 from typing import Callable
 
-
 from src.bot.command_router import CommandRouter
 from src.package.package import Message
-from datetime import datetime
+from src.relay.message_factory import make_system_message
 
 
 class Bot:
@@ -24,11 +23,10 @@ class Bot:
 
     async def async_send_text(self, text: str):
         await self.send_message(
-            Message(
+            make_system_message(
                 chat=self.chat_name,
                 sender=self.bot_name,
                 text=text,
-                timestamp=datetime.now(),
             )
         )
 

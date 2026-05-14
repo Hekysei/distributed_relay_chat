@@ -17,40 +17,17 @@ class RelayBot(Bot):
         )
         self.dispatcher = dispatcher
 
-        name_kwargs = {
-            "name": "",
-        }
-        code_kwargs = {
-            "code": "blank_code",
-        }
-        CLIENT_COMMANDS = [
-            (
-                "/create",
-                self._cmd_create_channel,
-                name_kwargs,
-            ),
-            (
-                "/join",
-                self._cmd_join_channel,
-                name_kwargs,
-            ),
-            (
-                "/direct",
-                self._cmd_direct,
-                code_kwargs,
-            ),
-            (
-                "/mod",
-                self._cmd_claim_moderator,
-                {},
-            ),
-            (
-                "/verify",
-                self._cmd_verify_user,
-                code_kwargs,
-            ),
-        ]
-        self.add_commands(CLIENT_COMMANDS)
+        name_kw = {"name": ""}
+        code_kw = {"code": "blank_code"}
+        self.add_commands(
+            [
+                ("/create", self._cmd_create_channel, name_kw),
+                ("/join", self._cmd_join_channel, name_kw),
+                ("/direct", self._cmd_direct, code_kw),
+                ("/mod", self._cmd_claim_moderator, {}),
+                ("/verify", self._cmd_verify_user, code_kw),
+            ]
+        )
 
     async def async_send_text_to(self, client_handler, text: str):
         await client_handler.send_message(self._make_message(text))
@@ -64,18 +41,23 @@ class RelayBot(Bot):
         await self.async_send_text_to(client_handler, dispatch_result.format_error())
         return dispatch_result.ok
 
-    async def _cmd_join_channel(self, client_handler, name: str):
-        err, channel_name = self._parse_room_channel(name)
+    async def _room_channel_or_reply(self, client_handler, name: str) -> str | None:
+        err, channel = self._parse_room_channel(name)
         if err:
             await self.async_send_text_to(client_handler, err)
+            return None
+        return channel
+
+    async def _cmd_join_channel(self, client_handler, name: str):
+        channel_name = await self._room_channel_or_reply(client_handler, name)
+        if not channel_name:
             return
         res = await self.dispatcher.subscribe(channel_name, client_handler.user_code)
         await self._send_dispatch_code(client_handler, res)
 
     async def _cmd_create_channel(self, client_handler, name: str):
-        err, channel_name = self._parse_room_channel(name)
-        if err:
-            await self.async_send_text_to(client_handler, err)
+        channel_name = await self._room_channel_or_reply(client_handler, name)
+        if not channel_name:
             return
         res = await self.dispatcher.add_channel(channel_name, client_handler.user_code)
         if not await self._send_dispatch_code(client_handler, res):

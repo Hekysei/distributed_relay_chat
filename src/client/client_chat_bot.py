@@ -3,7 +3,7 @@ import asyncio
 from src.client.chat import ChatBot
 from src.client.client import Client
 
-greetings = [
+GREETINGS = [
     "Welcome!",
     "Commands:",
     "/c, /connect - connect to relay",
@@ -33,5 +33,5 @@ class ClientChatBot(ChatBot):
         asyncio.run(self.greet())
 
     async def greet(self):
-        for greet in greetings:
+        for greet in GREETINGS:
             await self.bot.async_send_text(greet)
