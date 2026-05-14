@@ -28,10 +28,22 @@ if ! gh auth status >/dev/null 2>&1; then
   exit 1
 fi
 
+# GitHub отдаёт workflow по API только если файл есть в ветке по умолчанию репозитория.
+if ! gh workflow view build-tui-windows.yml >/dev/null 2>&1; then
+  echo "Workflow build-tui-windows.yml на GitHub в ветке по умолчанию не найден (часто HTTP 404)." >&2
+  echo "Сделайте push и merge в default branch (main/master — как настроено в репозитории):" >&2
+  echo "  .github/workflows/build-tui-windows.yml" >&2
+  exit 1
+fi
+
 before=$(gh run list --workflow=build-tui-windows.yml --limit 1 --json databaseId --jq '.[0].databaseId // empty' 2>/dev/null || true)
 
 echo "Запуск workflow «Build TUI client (Windows)»..."
-gh workflow run build-tui-windows.yml
+if ref=$(git symbolic-ref -q --short HEAD 2>/dev/null); then
+  gh workflow run build-tui-windows.yml --ref "$ref"
+else
+  gh workflow run build-tui-windows.yml
+fi
 
 i=0
 while [ "$i" -lt 90 ]; do

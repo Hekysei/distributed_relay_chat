@@ -27,6 +27,22 @@ ROOT = Path(__file__).resolve().parent.parent
 ENTRY = ROOT / "tui_client.py"
 
 
+def _win_stdio_utf8() -> None:
+    """Избегает UnicodeEncodeError (cp1252) при выводе кириллицы в консоль Windows / CI."""
+    if sys.platform != "win32":
+        return
+    for stream in (sys.stdout, sys.stderr):
+        if not hasattr(stream, "reconfigure"):
+            continue
+        enc = getattr(stream, "encoding", None) or ""
+        if enc.lower() in ("utf-8", "utf8"):
+            continue
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace")
+        except (OSError, ValueError, AttributeError):
+            pass
+
+
 def _have_pyinstaller() -> bool:
     try:
         import PyInstaller  # noqa: F401
@@ -37,6 +53,7 @@ def _have_pyinstaller() -> bool:
 
 
 def main() -> int:
+    _win_stdio_utf8()
     parser = argparse.ArgumentParser(
         description="Собрать TUI-клиент (один исполняемый файл или папку).",
     )
