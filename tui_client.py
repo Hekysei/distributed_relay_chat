@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import asyncio
+import sys
 
 from src.app.tui_adapter import TUI_Adapter
 from src.app.app_client import APPClient
@@ -20,5 +21,8 @@ class APP:
 
 
 if __name__ == "__main__":
-    app = APP()
-    app.run()
+    try:
+        app = APP()
+        app.run()
+    except KeyboardInterrupt:
+        sys.exit(0)

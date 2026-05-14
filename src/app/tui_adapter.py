@@ -1,4 +1,5 @@
 import curses
+import sys
 from threading import Lock
 
 from typing import Union
@@ -7,6 +8,18 @@ from src.client.user_client import UserClient
 from src.limits import MAX_MESSAGE_TEXT_LENGTH
 
 mutex = Lock()
+
+
+def _reset_tty_after_tui() -> None:
+    """После curses: курсор виден, сброс атрибутов, очистка экрана (убирает «хвост» TUI)."""
+    out = getattr(sys, "__stdout__", None)
+    if out is None or not out.isatty():
+        return
+    try:
+        out.write("\x1b[?25h\x1b[0m\x1b[2J\x1b[H")
+        out.flush()
+    except OSError:
+        pass
 
 
 def _wrap_message_lines(prefix: str, text: str, width: int) -> list[str]:
@@ -77,20 +90,35 @@ class TUI_Adapter:
         self.is_stoped = False
 
     def run(self):
-        curses.wrapper(self.__run_in_wrapper)
+        try:
+            try:
+                curses.wrapper(self.__run_in_wrapper)
+            except KeyboardInterrupt:
+                self.is_stoped = True
+        finally:
+            try:
+                curses.endwin()
+            except curses.error:
+                pass
+            _reset_tty_after_tui()
 
     ### РАБОТА TUI ###
     def __run_in_wrapper(self, stdscr: curses.window):
         self.stdscr = stdscr
-        self.fresah_draw()
-
-        curses.curs_set(0)
-        # curses.use_default_colors()
         try:
+            self.fresah_draw()
+
+            curses.curs_set(0)
+            # curses.use_default_colors()
             while not self.is_stoped:
                 self.iter()
         except KeyboardInterrupt:
             self.is_stoped = True
+        finally:
+            try:
+                curses.curs_set(1)
+            except curses.error:
+                pass
 
     def iter(self):
         # int - специальные ключи, str - символ
