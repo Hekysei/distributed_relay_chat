@@ -166,7 +166,8 @@ class TUI_Adapter:
         bar_width = 20
         msg_width = width - bar_width
 
-        inp_height = 3
+        # Внешняя высота: рамка + 2 строки ввода + рамка (см. create_window).
+        inp_height = 4
         msg_height = height - inp_height
 
         self.bar_win = self.create_window(height, bar_width, 0, 0)
@@ -205,9 +206,18 @@ class TUI_Adapter:
         with mutex:
             if not self.is_stoped:
                 self.inp_win.erase()
-                _, width = self.inp_win.getmaxyx()
+                inner_height, width = self.inp_win.getmaxyx()
+                if inner_height <= 0 or width <= 0:
+                    self.inp_win.refresh()
+                    return
 
-                self.inp_win.insstr(0, 0, ">" + self.input_buffer[:width])
+                lines = _wrap_message_lines(">", self.input_buffer, width)
+                if len(lines) > inner_height:
+                    lines = lines[-inner_height:]
+                for row, line in enumerate(lines):
+                    if row >= inner_height:
+                        break
+                    self.inp_win.insstr(row, 0, line[:width])
                 self.inp_win.refresh()
 
     def update_bar(self):
