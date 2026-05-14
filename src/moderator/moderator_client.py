@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 from src.bot.bot import Bot
 from src.client.client import Client
-from src.client.moderator_accounts import ModeratorAccountStore
+from src.moderator.moderator_accounts import ModeratorAccountStore
 from src.package.package import Message, SystemMessage
 from src.relay.dispatcher.dispatcher_interface import DispatchCode
 

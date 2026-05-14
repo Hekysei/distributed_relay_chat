@@ -3,7 +3,7 @@
 import argparse
 import asyncio
 
-from src.client.moderator_client import ModeratorClient
+from src.moderator.moderator_client import ModeratorClient
 
 
 async def _amain() -> None:
