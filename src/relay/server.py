@@ -27,7 +27,7 @@ class Server:
             print("Client disconnected")
 
     async def run(self):
-        async with websockets.serve(self.handler_factory, "localhost", 1409):
+        async with websockets.serve(self.handler_factory, "0.0.0.0", 12021):
             print("Server started. Press Ctrl+C to stop.")
 
             loop = asyncio.get_running_loop()
