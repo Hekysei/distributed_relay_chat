@@ -22,7 +22,7 @@ class ActivePackageHandler(PackageHandler):
         )
 
     async def set_username(self, name: str):
-        if self.connection_handler.is_connected():
+        if self.connection_handler.is_connected() and self.username:
             return
         self.username = name
         if self.connection_handler.is_connected():

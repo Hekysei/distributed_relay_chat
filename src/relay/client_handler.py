@@ -41,8 +41,14 @@ class ClientHandler(ActivePackageHandler):
 
     ### HANDLERS ###
     async def on_msg(self, msg: Message):
-        declared = (msg.sender or "").strip()
-        if declared != (self.username or "").strip():
+        if not (self.username).strip():
+            await self.send_text_to_client(
+                "Your display name is not set. Set it on your client before sending messages."
+            )
+            return
+
+        declared = (msg.sender).strip()
+        if declared != (self.username).strip():
             await self.send_text_to_client(
                 "The sender name in your message does not match your assigned username."
             )
@@ -111,8 +117,14 @@ class ClientHandler(ActivePackageHandler):
         )
 
     async def set_username(self, name: str):
-        if self.username:
+        if (self.username).strip():
             await self.send_text_to_client("Username cannot be changed.")
             return
-        self.username = name
+        chosen = (name).strip()
+        if not chosen:
+            await self.send_text_to_client(
+                "Set a non-empty display name on your client before using the relay."
+            )
+            return
+        self.username = chosen
         await self.send_text_to_client(f"Your name is {self.username}")
