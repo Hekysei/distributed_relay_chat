@@ -26,9 +26,9 @@ class Server:
             self.active_connections.remove(ws)
             print("Client disconnected")
 
-    async def run(self):
-        async with websockets.serve(self.handler_factory, "0.0.0.0", 12021):
-            print("Server started. Press Ctrl+C to stop.")
+    async def run(self, host: str = "0.0.0.0", port: int = 12021):
+        async with websockets.serve(self.handler_factory, host, port):
+            print(f"Server started on ws://{host}:{port}. Press Ctrl+C to stop.")
 
             loop = asyncio.get_running_loop()
             stop_future = loop.create_future()
