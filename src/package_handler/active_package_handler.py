@@ -22,6 +22,8 @@ class ActivePackageHandler(PackageHandler):
         )
 
     async def set_username(self, name: str):
+        if self.connection_handler.is_connected() and self.username != "blank_name":
+            return
         self.username = name
         if self.connection_handler.is_connected():
             await self.send_username()

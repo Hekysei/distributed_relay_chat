@@ -104,5 +104,8 @@ class ClientHandler(ActivePackageHandler):
         )
 
     async def set_username(self, name: str):
+        if self.username != "blank_name":
+            await self.send_text_to_client("Username cannot be changed.")
+            return
         self.username = name
         await self.send_text_to_client(f"Your name is {self.username}")
