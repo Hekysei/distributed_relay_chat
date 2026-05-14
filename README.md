@@ -2,57 +2,71 @@
 Проект по дисциплине "Основы ИТ технологий".
 <img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/f6aba8dc-c5b1-47d6-bfe7-25a1da112ffe" />
 
-## Установка и запуск
+## Клиент
 
-1. Клонируйте репозиторий и перейдите в папку проекта:
+### Готовый бинарный файл из релиза
+
+Скомпилированные клиенты выкладываются в [релизах](https://github.com/Hekysei/distributed_relay_chat/releases).
+
+### Собрать свой клиент
+
+Сборка даёт один исполняемый файл (или каталог) через [PyInstaller](https://pyinstaller.org/). Собирайте **на той же ОС**, под которую нужен бинарник: PyInstaller не кросс-компилирует (например, Linux → Windows).
+
+1. Клонируйте репозиторий и перейдите в каталог проекта:
+
    ```bash
    git clone https://github.com/Hekysei/distributed_relay_chat.git
    cd distributed_relay_chat
    ```
 
-2. Установите зависимости:
+2. Создайте виртуальное окружение и установите зависимости клиента и инструменты сборки:
+
    ```bash
    python3 -m venv venv
-   source venv/bin/activate   # или venv\Scripts\activate для Windows
-   pip install -r requirements.txt
+   source venv/bin/activate   # Windows: venv\Scripts\activate
+   pip install -r requirements.txt -r requirements-build.txt
    ```
 
-3. Запустите сервер (релей):
+   На Windows для `curses` нужен пакет `windows-curses` (уже в `requirements.txt`).
+
+3. Запустите сборку из корня репозитория:
+
+   - **Linux / macOS:** `python3 scripts/build_tui.py` или `./scripts/build-tui.sh`
+   - **Windows:** `python scripts\build_tui.py` или `scripts\build-tui.bat`
+
+   Готовый одиночный файл: `dist/tui_client` (Linux/macOS) или `dist\tui_client.exe` (Windows).
+
+4. Опционально — сборка **папкой** (`dist/tui_client/` с исполняемым внутри):
+
    ```bash
-   python3 relay.py
+   python3 scripts/build_tui.py --onedir
    ```
 
-4. В новом терминале запустите TUI-клиент:
-   ```bash
-   python3 tui_client.py
-   ```
+**Без сборки бинарника:** после шага 2 достаточно запустить интерпретатором: `python3 tui_client.py` (из активированного venv).
 
-## Docker
+## Релей
 
-Нужны установленный [Docker](https://docs.docker.com/engine/install/) и плагин Compose (часто поставляется вместе с Docker Desktop или пакетом `docker-compose`).
+### Запустить Docker
 
-Из корня репозитория:
+Нужны [Docker](https://docs.docker.com/engine/install/) и Compose.
+
+Из **корня клона** репозитория:
 
 ```bash
 docker compose up --build
 ```
 
-Поднимутся два сервиса: **relay** (WebSocket на порту **12021**) и **moderator** (подключается к relay по внутреннему имени сервиса `relay`). Клиенты с вашей машины подключаются к адресу `ws://localhost:12021`.
+Поднимутся сервисы **relay** (WebSocket, наружу обычно порт **12021**) и **moderator** (подключается к `relay` по внутреннему имени сервиса). Клиенты на вашей машине подключаются к `ws://localhost:12021`.
 
-Запуск в фоне и просмотр логов:
+Фон, логи, остановка:
 
 ```bash
 docker compose up -d --build
 docker compose logs -f relay moderator
-```
-
-Остановка:
-
-```bash
 docker compose down
 ```
 
-Если порт 12021 занят, измените проброс в `docker-compose.yml` (например `"12022:12021"`) и укажите клиентам внешний порт **12022**.
+Если порт 12021 занят, измените проброс в `docker-compose.yml` (например `"12022:12021"`) и подключайте клиентов к внешнему порту **12022**.
 
 ## TODO
 - Адекватно решить проблему curses и двух потоков
