@@ -19,6 +19,7 @@ class DispatchCode(str, Enum):
     CANNOT_DIRECT_SELF = "You cannot start direct chat with yourself"
     ACCESS_DENIED = "Access denied"
     USER_VERIFIED = "User verified"
+    USER_ALREADY_VERIFIED = "User already verified"
     MODERATOR_GRANTED = "Moderator role granted"
     MODERATOR_ALREADY_EXISTS = "Moderator already exists"
 

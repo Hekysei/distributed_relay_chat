@@ -154,6 +154,8 @@ class ProxyDispatcher(DispatcherInterface):
             return DispatchResult(False, DispatchCode.ACCESS_DENIED, moderator_code)
         if target_user_code not in self.user_roles:
             return DispatchResult(False, DispatchCode.NO_SUCH_USER, target_user_code)
+        if self.user_roles[target_user_code] == UserRole.VERIFIED:
+            return DispatchResult(False, DispatchCode.USER_ALREADY_VERIFIED, target_user_code)
         if self.user_roles[target_user_code] != UserRole.MODERATOR:
             self.user_roles[target_user_code] = UserRole.VERIFIED
         return DispatchResult(True, DispatchCode.USER_VERIFIED, target_user_code)
