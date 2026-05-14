@@ -8,6 +8,16 @@
 
 Скомпилированные клиенты выкладываются в [релизах](https://github.com/Hekysei/distributed_relay_chat/releases).
 
+### Запуск через Python
+
+Из корня клона репозитория, с установленными зависимостями (`python3 -m venv venv`, активация venv, `pip install -r requirements.txt`):
+
+```bash
+python3 tui_client.py
+```
+
+На Windows: `python tui_client.py`. На Windows для `curses` нужен `windows-curses` из `requirements.txt`.
+
 ### Собрать свой клиент
 
 Сборка даёт один исполняемый файл (или каталог) через [PyInstaller](https://pyinstaller.org/). Собирайте **на той же ОС**, под которую нужен бинарник: PyInstaller не кросс-компилирует (например, Linux → Windows).
@@ -27,8 +37,6 @@
    pip install -r requirements.txt -r requirements-build.txt
    ```
 
-   На Windows для `curses` нужен пакет `windows-curses` (уже в `requirements.txt`).
-
 3. Запустите сборку из корня репозитория:
 
    - **Linux / macOS:** `python3 scripts/build_tui.py` или `./scripts/build-tui.sh`
@@ -42,9 +50,17 @@
    python3 scripts/build_tui.py --onedir
    ```
 
-**Без сборки бинарника:** после шага 2 достаточно запустить интерпретатором: `python3 tui_client.py` (из активированного venv).
-
 ## Релей
+
+### Запуск через Python
+
+Из корня клона репозитория, с установленными зависимостями (`python3 -m venv venv`, активация venv, `pip install -r requirements.txt`):
+
+```bash
+python3 relay.py
+```
+
+По умолчанию релей слушает `0.0.0.0:12021`. Другой адрес и порт: `python3 relay.py --host 127.0.0.1 --port 12022` (порт должен совпадать с тем, что указывают клиент и при необходимости `moderator.py`).
 
 ### Запустить Docker
 
