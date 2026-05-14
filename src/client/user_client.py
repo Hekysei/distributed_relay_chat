@@ -6,7 +6,8 @@ from src.client.client_chat_bot import ClientChatBot
 
 from typing import cast
 
-from src.package.package import Message, TimestampResponse
+from src.package.package import Message, SystemMessage, TimestampResponse
+from src.relay.dispatcher.dispatcher_interface import RoomSyncMsgType
 
 
 class UserClient(Client):
@@ -35,6 +36,17 @@ class UserClient(Client):
 
     async def on_tsr(self, tsr: TimestampResponse):
         cast(RemoteChat, self.chats[tsr.chat]).on_tsr(tsr)
+
+    async def on_sys_msg(self, sys_msg: SystemMessage):
+        if sys_msg.msg_type in (
+            RoomSyncMsgType.LEFT_CHANNEL,
+            RoomSyncMsgType.REMOVED_FROM_CHANNEL,
+        ):
+            chat_name = (sys_msg.body or "").strip()
+            if chat_name and chat_name in self.chats:
+                self.remove_chat(chat_name)
+            return
+        await super().on_sys_msg(sys_msg)
 
     ### ОТПРАВКА ###
     async def send_text_to_user(self, text: str):

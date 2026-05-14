@@ -2,12 +2,13 @@ from dataclasses import replace
 from typing import Awaitable, Callable
 from uuid import uuid4
 
-from src.package.package import Message
+from src.package.package import Message, SystemMessage
 from src.relay.dispatcher.channel import Channel
 from src.relay.dispatcher.dispatcher_interface import (
     DispatchCode,
     DispatchResult,
     DispatcherInterface,
+    RoomSyncMsgType,
 )
 
 
@@ -121,6 +122,13 @@ class Dispatcher(DispatcherInterface):
         if user_code not in self.channels[channel_name].members:
             return DispatchResult(False, DispatchCode.NOT_IN_ROOM, channel_name)
         await self.unsubscribe(channel_name, user_code, None)
+        await self.send_message(
+            user_code,
+            SystemMessage(
+                msg_type=RoomSyncMsgType.LEFT_CHANNEL,
+                body=channel_name,
+            ),
+        )
         return DispatchResult(True, DispatchCode.LEFT_ROOM, channel_name)
 
     async def kick_from_channel(

@@ -4,11 +4,11 @@ from typing import Awaitable, Callable
 
 from src.package.package import Message, SystemMessage
 from src.relay.message_factory import make_system_message
-from src.relay.relay_bot import RELAY_CHAT_NAME
 from src.relay.dispatcher.dispatcher_interface import (
     DispatchCode,
     DispatchResult,
     DispatcherInterface,
+    RoomSyncMsgType,
 )
 
 
@@ -176,10 +176,9 @@ class ProxyDispatcher(DispatcherInterface):
         await self.dispatcher.unsubscribe(channel_name, target_user_code, room_notice)
         await self.dispatcher.send_message(
             target_user_code,
-            make_system_message(
-                chat=RELAY_CHAT_NAME,
-                sender="relay",
-                text=f"You were removed from {channel_name} by a moderator.",
+            SystemMessage(
+                msg_type=RoomSyncMsgType.REMOVED_FROM_CHANNEL,
+                body=channel_name,
             ),
         )
         return DispatchResult(True, DispatchCode.USER_KICKED, target_user_code)
