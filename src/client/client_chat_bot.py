@@ -15,7 +15,7 @@ class ClientChatBot(ChatBot):
     def __init__(self, client: Client):
         super().__init__("c/client", "client")
 
-        CONNECT_ARGS = {"ip": "localhost", "port": "1409"}
+        CONNECT_ARGS = {"ip": "localhost", "port": "12021"}
         CLIENT_COMMANDS = [
             ("/connect", client.start_connection_thread, CONNECT_ARGS),
             ("/c", client.start_connection_thread, CONNECT_ARGS),
