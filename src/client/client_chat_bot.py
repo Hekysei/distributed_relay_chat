@@ -8,6 +8,7 @@ GREETINGS = [
     "Commands:",
     "/c, /connect - connect to relay",
     "/d - disconnect",
+    "/name - set username",
 ]
 
 
